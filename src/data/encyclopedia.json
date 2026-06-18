@@ -1,0 +1,552 @@
+[
+  {
+    "id": "monstera-deliciosa",
+    "commonName": "Swiss Cheese Plant",
+    "scientificName": "Monstera deliciosa",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Let the top 2-3 cm of soil dry between waterings. Loves bright, indirect light and humidity. Wipe leaves to keep them glossy and provide a moss pole for the aerial roots to climb."
+  },
+  {
+    "id": "snake-plant",
+    "commonName": "Snake Plant",
+    "scientificName": "Dracaena trifasciata",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Low",
+    "careSummary": "Extremely drought tolerant. Water only when the soil is fully dry, roughly every two weeks. Tolerates low light but grows faster in brighter spots. Avoid overwatering to prevent root rot."
+  },
+  {
+    "id": "golden-pothos",
+    "commonName": "Golden Pothos",
+    "scientificName": "Epipremnum aureum",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "A forgiving trailing vine. Water when the top few centimetres of soil dry out. Thrives in medium light and tolerates low light. Prune regularly to encourage bushy, full growth."
+  },
+  {
+    "id": "fiddle-leaf-fig",
+    "commonName": "Fiddle Leaf Fig",
+    "scientificName": "Ficus lyrata",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Needs consistent bright, indirect light and dislikes being moved. Water when the top few centimetres dry out. Sensitive to overwatering and drafts. Dust the large leaves to maximise light absorption."
+  },
+  {
+    "id": "zz-plant",
+    "commonName": "ZZ Plant",
+    "scientificName": "Zamioculcas zamiifolia",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Low",
+    "careSummary": "Stores water in rhizomes, making it very drought tolerant. Water sparingly once the soil is dry. Handles low light well and rarely needs pruning. A near-indestructible beginner plant."
+  },
+  {
+    "id": "peace-lily",
+    "commonName": "Peace Lily",
+    "scientificName": "Spathiphyllum wallisii",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "Enjoys consistently moist soil and droops dramatically when thirsty, then recovers after watering. Prefers medium, indirect light. Remove spent flowers and yellow leaves to keep it tidy."
+  },
+  {
+    "id": "spider-plant",
+    "commonName": "Spider Plant",
+    "scientificName": "Chlorophytum comosum",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Fast-growing and easy. Water when the top of the soil dries. Produces baby plantlets that can be propagated. Prefers bright, indirect light; sensitive to fluoride in tap water."
+  },
+  {
+    "id": "rubber-plant",
+    "commonName": "Rubber Plant",
+    "scientificName": "Ficus elastica",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Glossy-leaved tree that likes bright, indirect light. Let the top soil dry between waterings. Wipe leaves to keep them shiny. Prune to control height and encourage branching."
+  },
+  {
+    "id": "aloe-vera",
+    "commonName": "Aloe Vera",
+    "scientificName": "Aloe barbadensis miller",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A succulent that needs bright light and infrequent, deep watering once the soil is completely dry. Use well-draining cactus soil. Harvest outer leaves for their soothing gel."
+  },
+  {
+    "id": "boston-fern",
+    "commonName": "Boston Fern",
+    "scientificName": "Nephrolepis exaltata",
+    "wateringFrequencyDays": 3,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "Loves high humidity and consistently moist soil. Keep away from dry heat and direct sun. Mist regularly and trim brown fronds. Place in a humid bathroom for best results."
+  },
+  {
+    "id": "english-ivy",
+    "commonName": "English Ivy",
+    "scientificName": "Hedera helix",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "A trailing vine that likes evenly moist soil and medium light. Prune frequently to keep it full and manageable. Prefers cooler temperatures and good airflow to avoid pests."
+  },
+  {
+    "id": "jade-plant",
+    "commonName": "Jade Plant",
+    "scientificName": "Crassula ovata",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A long-lived succulent needing bright, direct light and infrequent watering once the soil dries fully. Use gritty, well-draining soil. Prune to shape into a tree-like form."
+  },
+  {
+    "id": "philodendron-heartleaf",
+    "commonName": "Heartleaf Philodendron",
+    "scientificName": "Philodendron hederaceum",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "An easy trailing plant with heart-shaped leaves. Water when the top soil dries. Tolerates a range of light from low to bright indirect. Pinch back stems to keep it bushy."
+  },
+  {
+    "id": "chinese-money-plant",
+    "commonName": "Chinese Money Plant",
+    "scientificName": "Pilea peperomioides",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Round, coin-shaped leaves on upright stems. Water when the top soil dries and rotate regularly for even growth. Prefers bright, indirect light. Produces offshoots that are easy to propagate."
+  },
+  {
+    "id": "calathea-orbifolia",
+    "commonName": "Calathea Orbifolia",
+    "scientificName": "Goeppertia orbifolia",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "Prized for its striped silver foliage. Keep soil lightly moist and humidity high. Use filtered or distilled water to avoid leaf browning. Avoid direct sun, which fades the patterns."
+  },
+  {
+    "id": "string-of-pearls",
+    "commonName": "String of Pearls",
+    "scientificName": "Curio rowleyanus",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A trailing succulent with bead-like leaves. Water sparingly once the soil dries; the pearls plump up when hydrated. Needs bright, indirect light. Avoid sitting water to prevent rot."
+  },
+  {
+    "id": "areca-palm",
+    "commonName": "Areca Palm",
+    "scientificName": "Dypsis lutescens",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A feathery palm that likes bright, indirect light and slightly moist soil. Sensitive to fluoride; use filtered water. Trim only fully brown fronds. Boosts indoor humidity nicely."
+  },
+  {
+    "id": "parlor-palm",
+    "commonName": "Parlor Palm",
+    "scientificName": "Chamaedorea elegans",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Low",
+    "careSummary": "A compact, low-light tolerant palm. Water when the top soil dries and avoid overwatering. Rarely needs pruning beyond removing dead fronds. A classic, easy-care indoor palm."
+  },
+  {
+    "id": "dracaena-marginata",
+    "commonName": "Dragon Tree",
+    "scientificName": "Dracaena marginata",
+    "wateringFrequencyDays": 10,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Medium",
+    "careSummary": "A spiky-leaved tree that tolerates neglect. Let soil dry well between waterings and use filtered water to avoid leaf tip browning. Prune the cane to control height and shape."
+  },
+  {
+    "id": "croton",
+    "commonName": "Croton",
+    "scientificName": "Codiaeum variegatum",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Famous for vivid multicoloured leaves that need bright light to stay vibrant. Keep soil evenly moist and humidity high. Dislikes being moved and may drop leaves when stressed."
+  },
+  {
+    "id": "anthurium",
+    "commonName": "Flamingo Flower",
+    "scientificName": "Anthurium andraeanum",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Known for glossy red spathes. Water when the top soil dries and keep humidity high. Prefers bright, indirect light. Remove spent blooms and yellow leaves to encourage flowering."
+  },
+  {
+    "id": "bird-of-paradise",
+    "commonName": "Bird of Paradise",
+    "scientificName": "Strelitzia reginae",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A dramatic, large-leaved plant that needs lots of bright, direct light to bloom. Water when the top soil dries. Wipe leaves and remove damaged foliage. Needs space to spread."
+  },
+  {
+    "id": "monstera-adansonii",
+    "commonName": "Swiss Cheese Vine",
+    "scientificName": "Monstera adansonii",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A trailing or climbing vine with delicately holed leaves. Keep soil lightly moist and humidity high. Provide a trellis or let it trail. Prune to encourage fuller growth."
+  },
+  {
+    "id": "pothos-marble-queen",
+    "commonName": "Marble Queen Pothos",
+    "scientificName": "Epipremnum aureum 'Marble Queen'",
+    "wateringFrequencyDays": 8,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "A heavily variegated pothos. Water when the top soil dries. Needs brighter light than plain pothos to maintain the white marbling. Prune trailing vines to keep it dense."
+  },
+  {
+    "id": "string-of-hearts",
+    "commonName": "String of Hearts",
+    "scientificName": "Ceropegia woodii",
+    "wateringFrequencyDays": 12,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A delicate trailing plant with heart-shaped leaves on thin vines. Water sparingly once the soil dries. Loves bright, indirect light. Easy to propagate from cuttings or tubers."
+  },
+  {
+    "id": "succulent-echeveria",
+    "commonName": "Echeveria",
+    "scientificName": "Echeveria elegans",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A rosette-forming succulent needing bright, direct light and infrequent deep watering once soil is dry. Use gritty soil. Remove dead lower leaves. Avoid water sitting in the rosette."
+  },
+  {
+    "id": "haworthia",
+    "commonName": "Zebra Haworthia",
+    "scientificName": "Haworthiopsis attenuata",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A small succulent with white-striped leaves. Water when soil is fully dry, about every two weeks. Tolerates lower light than most succulents. Rarely needs pruning beyond removing dead leaves."
+  },
+  {
+    "id": "christmas-cactus",
+    "commonName": "Christmas Cactus",
+    "scientificName": "Schlumbergera bridgesii",
+    "wateringFrequencyDays": 10,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A forest cactus that blooms in winter. Keep soil lightly moist when growing and drier in autumn to trigger flowers. Prefers bright, indirect light. Pinch segments to encourage branching."
+  },
+  {
+    "id": "kalanchoe",
+    "commonName": "Flaming Katy",
+    "scientificName": "Kalanchoe blossfeldiana",
+    "wateringFrequencyDays": 12,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A flowering succulent with clusters of bright blooms. Water once the soil dries and give it plenty of bright light. Deadhead spent flowers to prolong blooming. Avoid soggy soil."
+  },
+  {
+    "id": "african-violet",
+    "commonName": "African Violet",
+    "scientificName": "Saintpaulia ionantha",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "A compact flowering houseplant. Water from below to keep leaves dry and avoid spotting. Prefers medium, indirect light and stable warmth. Remove spent blooms to encourage more flowers."
+  },
+  {
+    "id": "begonia-rex",
+    "commonName": "Rex Begonia",
+    "scientificName": "Begonia rex-cultorum",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "Grown for striking patterned leaves. Keep soil lightly moist but never soggy and humidity high. Prefers medium, indirect light. Avoid wetting the leaves to prevent powdery mildew."
+  },
+  {
+    "id": "dieffenbachia",
+    "commonName": "Dumb Cane",
+    "scientificName": "Dieffenbachia seguine",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "A leafy plant with cream-marked foliage. Water when the top soil dries and keep in medium, indirect light. Sap is irritating, so wear gloves when pruning. Wipe leaves to keep them clean."
+  },
+  {
+    "id": "aglaonema",
+    "commonName": "Chinese Evergreen",
+    "scientificName": "Aglaonema commutatum",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Low",
+    "careSummary": "An easy, colourful foliage plant that tolerates low light. Water when the top soil dries. Darker varieties handle shade; variegated ones prefer more light. Minimal pruning required."
+  },
+  {
+    "id": "schefflera",
+    "commonName": "Umbrella Plant",
+    "scientificName": "Schefflera arboricola",
+    "wateringFrequencyDays": 8,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Glossy umbrella-shaped leaflets on upright stems. Water when the top soil dries and provide bright, indirect light. Prune to keep it bushy and prevent legginess. Avoid overwatering."
+  },
+  {
+    "id": "yucca",
+    "commonName": "Yucca",
+    "scientificName": "Yucca elephantipes",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Full Sun",
+    "careSummary": "A drought-tolerant plant with sword-like leaves. Needs bright light and infrequent watering once the soil dries. Use well-draining soil. Remove dead lower leaves as it grows."
+  },
+  {
+    "id": "ponytail-palm",
+    "commonName": "Ponytail Palm",
+    "scientificName": "Beaucarnea recurvata",
+    "wateringFrequencyDays": 14,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Full Sun",
+    "careSummary": "Not a true palm; it stores water in its swollen base, making it very drought tolerant. Water sparingly once soil dries. Loves bright light. Trim brown leaf tips as needed."
+  },
+  {
+    "id": "norfolk-island-pine",
+    "commonName": "Norfolk Island Pine",
+    "scientificName": "Araucaria heterophylla",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A soft-needled indoor conifer. Keep soil lightly moist and humidity high. Prefers bright, indirect light. Do not cut the top, as it will not regrow a central leader. Rotate for even growth."
+  },
+  {
+    "id": "cast-iron-plant",
+    "commonName": "Cast Iron Plant",
+    "scientificName": "Aspidistra elatior",
+    "wateringFrequencyDays": 12,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Low",
+    "careSummary": "Nearly indestructible and tolerant of low light and neglect. Water when the top soil dries. Slow-growing, so pruning is rarely needed. Wipe leaves occasionally to remove dust."
+  },
+  {
+    "id": "prayer-plant",
+    "commonName": "Prayer Plant",
+    "scientificName": "Maranta leuconeura",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "Named for leaves that fold up at night. Keep soil lightly moist and humidity high; use filtered water. Prefers medium, indirect light. Trim leggy stems to promote bushy growth."
+  },
+  {
+    "id": "nerve-plant",
+    "commonName": "Nerve Plant",
+    "scientificName": "Fittonia albivenis",
+    "wateringFrequencyDays": 3,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "A compact plant with veined leaves that wilts quickly when dry but recovers fast. Keep soil consistently moist and humidity high. Prefers medium light. Pinch tips to keep it compact."
+  },
+  {
+    "id": "peperomia-watermelon",
+    "commonName": "Watermelon Peperomia",
+    "scientificName": "Peperomia argyreia",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Medium",
+    "careSummary": "Has striped, watermelon-patterned leaves. Water when the top soil dries; the thick leaves store water. Prefers medium, indirect light. Compact growth means little pruning is needed."
+  },
+  {
+    "id": "hoya-carnosa",
+    "commonName": "Wax Plant",
+    "scientificName": "Hoya carnosa",
+    "wateringFrequencyDays": 12,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A trailing plant with waxy leaves and fragrant star-shaped flowers. Water once the soil dries. Needs bright, indirect light to bloom. Do not remove the flower spurs, as they reflower."
+  },
+  {
+    "id": "tradescantia-zebrina",
+    "commonName": "Inch Plant",
+    "scientificName": "Tradescantia zebrina",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A fast-growing trailing plant with purple-striped leaves. Water when the top soil dries. Needs bright, indirect light to keep its colour. Pinch frequently to prevent leggy growth."
+  },
+  {
+    "id": "polka-dot-plant",
+    "commonName": "Polka Dot Plant",
+    "scientificName": "Hypoestes phyllostachya",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 45,
+    "lightRequirement": "Medium",
+    "careSummary": "Grown for its spotted pink or white foliage. Keep soil lightly moist and humidity moderate. Prefers bright, indirect to medium light. Pinch back regularly to keep it compact and colourful."
+  },
+  {
+    "id": "lucky-bamboo",
+    "commonName": "Lucky Bamboo",
+    "scientificName": "Dracaena sanderiana",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Medium",
+    "careSummary": "Often grown in water; change the water weekly and keep roots submerged. In soil, keep lightly moist. Use filtered water to avoid tip burn. Prefers medium, indirect light."
+  },
+  {
+    "id": "money-tree",
+    "commonName": "Money Tree",
+    "scientificName": "Pachira aquatica",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Recognised by its braided trunk. Water when the top few centimetres dry out; avoid soggy soil. Prefers bright, indirect light and moderate humidity. Prune to maintain its shape."
+  },
+  {
+    "id": "swiss-cheese-monstera-obliqua",
+    "commonName": "Monstera Obliqua",
+    "scientificName": "Monstera obliqua",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A rare, delicate vine with leaves that are mostly holes. Requires very high humidity and consistently moist soil. Prefers bright, indirect light. Handle gently as the foliage is fragile."
+  },
+  {
+    "id": "alocasia-polly",
+    "commonName": "African Mask Plant",
+    "scientificName": "Alocasia amazonica 'Polly'",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Dramatic arrow-shaped leaves with bold veins. Keep soil lightly moist and humidity very high. Prefers bright, indirect light. Goes dormant in winter; reduce watering then."
+  },
+  {
+    "id": "philodendron-birkin",
+    "commonName": "Philodendron Birkin",
+    "scientificName": "Philodendron 'Birkin'",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A self-heading philodendron with white pinstriped leaves. Water when the top soil dries. Needs bright, indirect light to maintain its variegation. Wipe leaves and remove any reverted growth."
+  },
+  {
+    "id": "ficus-benjamina",
+    "commonName": "Weeping Fig",
+    "scientificName": "Ficus benjamina",
+    "wateringFrequencyDays": 8,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A graceful tree that drops leaves when stressed or moved. Water when the top soil dries and keep in stable bright, indirect light. Prune to shape and avoid sudden environmental changes."
+  },
+  {
+    "id": "umbrella-tree-amate",
+    "commonName": "Amate Schefflera",
+    "scientificName": "Schefflera actinophylla",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "A larger umbrella tree with big glossy leaflets. Water when the top soil dries and provide bright, indirect light. Prune to control its rapid height and encourage a fuller canopy."
+  },
+  {
+    "id": "asparagus-fern",
+    "commonName": "Asparagus Fern",
+    "scientificName": "Asparagus setaceus",
+    "wateringFrequencyDays": 5,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 60,
+    "lightRequirement": "Medium",
+    "careSummary": "Not a true fern; it has feathery foliage and tiny thorns. Keep soil lightly moist and humidity high. Prefers bright, indirect to medium light. Trim yellow stems to keep it tidy."
+  },
+  {
+    "id": "staghorn-fern",
+    "commonName": "Staghorn Fern",
+    "scientificName": "Platycerium bifurcatum",
+    "wateringFrequencyDays": 7,
+    "fertilisingFrequencyDays": 45,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "An epiphytic fern often mounted on boards. Soak or mist when the base dries out and keep humidity high. Prefers bright, indirect light. Do not remove the brown shield fronds at the base."
+  },
+  {
+    "id": "kentia-palm",
+    "commonName": "Kentia Palm",
+    "scientificName": "Howea forsteriana",
+    "wateringFrequencyDays": 9,
+    "fertilisingFrequencyDays": 60,
+    "pruningFrequencyDays": 120,
+    "lightRequirement": "Medium",
+    "careSummary": "An elegant, slow-growing palm that tolerates lower light. Water when the top soil dries; avoid overwatering. Trim only dead fronds. Wipe fronds to remove dust and deter pests."
+  },
+  {
+    "id": "coffee-plant",
+    "commonName": "Coffee Plant",
+    "scientificName": "Coffea arabica",
+    "wateringFrequencyDays": 6,
+    "fertilisingFrequencyDays": 30,
+    "pruningFrequencyDays": 90,
+    "lightRequirement": "Bright Indirect",
+    "careSummary": "Glossy-leaved plant that can eventually produce coffee cherries. Keep soil lightly moist and humidity high. Prefers bright, indirect light. Prune to keep it bushy and manageable indoors."
+  }
+]

@@ -1,0 +1,148 @@
+{
+  "version": 1,
+  "rootId": "start",
+  "nodes": {
+    "start": {
+      "id": "start",
+      "question": "Which symptom best describes what you're seeing on your plant?",
+      "answers": [
+        { "label": "Leaves turning yellow", "value": "yellowing", "next": "q_yellow_moisture" },
+        { "label": "Leaves brown, crispy, or with dry edges", "value": "browning", "next": "q_brown_moisture" },
+        { "label": "Visible bugs, sticky residue, or webbing", "value": "pests", "next": "q_pests" },
+        { "label": "Plant drooping or wilting", "value": "wilting", "next": "q_wilt_moisture" },
+        { "label": "Weak, leggy, pale, or leaning growth", "value": "weak_growth", "next": "q_light_amount" },
+        { "label": "Mushy, dark, or foul-smelling stem or roots", "value": "rotting", "next": "q_rot_check" }
+      ]
+    },
+    "q_yellow_moisture": {
+      "id": "q_yellow_moisture",
+      "question": "Feel the soil. How does it feel?",
+      "answers": [
+        { "label": "Wet or soggy, hasn't dried out in days", "value": "wet", "next": "q_yellow_wet" },
+        { "label": "Dry and crumbly", "value": "dry", "next": "leaf_underwater" },
+        { "label": "Evenly moist, neither soggy nor bone-dry", "value": "moist", "next": "q_yellow_pattern" }
+      ]
+    },
+    "q_yellow_wet": {
+      "id": "q_yellow_wet",
+      "question": "Look closer at the soggy plant. What do you notice?",
+      "answers": [
+        { "label": "Lower or older leaves yellowing first, soil stays wet", "value": "lower_leaves", "next": "leaf_overwater" },
+        { "label": "Roots look brown or mushy, or the soil smells bad", "value": "bad_roots", "next": "leaf_rootrot" },
+        { "label": "Nothing clear, can't tell what's wrong", "value": "unclear", "next": "deadend_inconclusive" }
+      ]
+    },
+    "q_yellow_pattern": {
+      "id": "q_yellow_pattern",
+      "question": "Where is the yellowing concentrated?",
+      "answers": [
+        { "label": "Between the leaf veins, while the veins themselves stay green", "value": "interveinal", "next": "leaf_nutrient" },
+        { "label": "All over, with no clear pattern", "value": "no_pattern", "next": "deadend_inconclusive" }
+      ]
+    },
+    "q_brown_moisture": {
+      "id": "q_brown_moisture",
+      "question": "Feel the soil and look at where the browning is. Which fits best?",
+      "answers": [
+        { "label": "Soil is dry and the leaf edges are crispy or curling", "value": "dry_crispy", "next": "leaf_underwater" },
+        { "label": "Soil is wet or soggy with soft, dark brown spots", "value": "wet_soft", "next": "leaf_overwater" },
+        { "label": "Soil is normal but leaves are scorched on the sun-facing side", "value": "scorched", "next": "leaf_sunlight" }
+      ]
+    },
+    "q_pests": {
+      "id": "q_pests",
+      "question": "Look closely at the leaves and stems. What do you see?",
+      "answers": [
+        { "label": "Tiny moving bugs, fine webbing, or white cottony spots", "value": "visible_pests", "next": "leaf_pest" },
+        { "label": "Sticky residue or a black sooty film, but no visible bugs", "value": "residue", "next": "leaf_pest" },
+        { "label": "No bugs at all, just some discoloration", "value": "no_bugs", "next": "deadend_inconclusive" }
+      ]
+    },
+    "q_wilt_moisture": {
+      "id": "q_wilt_moisture",
+      "question": "Feel the soil. How does it feel?",
+      "answers": [
+        { "label": "Bone dry", "value": "dry", "next": "leaf_underwater" },
+        { "label": "Soggy or wet, yet the plant still wilts", "value": "wet", "next": "q_wilt_wet" },
+        { "label": "Normal moisture", "value": "normal", "next": "deadend_inconclusive" }
+      ]
+    },
+    "q_wilt_wet": {
+      "id": "q_wilt_wet",
+      "question": "Check the base of the stem and the roots. What do you find?",
+      "answers": [
+        { "label": "The stem is mushy or the roots are brown and smell bad", "value": "mushy", "next": "leaf_rootrot" },
+        { "label": "The roots look white and firm", "value": "firm", "next": "leaf_overwater" }
+      ]
+    },
+    "q_light_amount": {
+      "id": "q_light_amount",
+      "question": "How much light does this plant's current spot get?",
+      "answers": [
+        { "label": "Low light, far from any window", "value": "low", "next": "leaf_sunlight" },
+        { "label": "Lots of harsh, direct sun", "value": "harsh", "next": "q_light_scorch" },
+        { "label": "Moderate, near a window", "value": "moderate", "next": "deadend_inconclusive" }
+      ]
+    },
+    "q_light_scorch": {
+      "id": "q_light_scorch",
+      "question": "Look at the sun-facing leaves. Which describes them?",
+      "answers": [
+        { "label": "Bleached or scorched patches where the sun hits", "value": "scorched", "next": "leaf_sunlight" },
+        { "label": "Growth is just stretched and leaning toward the light", "value": "stretched", "next": "leaf_sunlight" }
+      ]
+    },
+    "q_rot_check": {
+      "id": "q_rot_check",
+      "question": "Gently check the soil line and roots. What do you find?",
+      "answers": [
+        { "label": "The base is soft or mushy and roots are brown and smell rotten", "value": "rotten", "next": "leaf_rootrot" },
+        { "label": "Soil is constantly wet but the roots still feel firm", "value": "wet_firm_roots", "next": "leaf_overwater" },
+        { "label": "Can't tell, the roots look okay", "value": "unclear", "next": "deadend_inconclusive" }
+      ]
+    },
+    "leaf_overwater": {
+      "id": "leaf_overwater",
+      "conclusive": true,
+      "cause": "Overwatering",
+      "action": "Allow the soil to dry out fully before watering again, and make sure the pot has drainage holes. Reduce how often you water and empty any saucer so the roots aren't left sitting in water."
+    },
+    "leaf_underwater": {
+      "id": "leaf_underwater",
+      "conclusive": true,
+      "cause": "Underwatering",
+      "action": "Water thoroughly until water drains from the bottom of the pot, then water on a consistent schedule. Move the plant away from drying drafts or direct heat sources."
+    },
+    "leaf_rootrot": {
+      "id": "leaf_rootrot",
+      "conclusive": true,
+      "cause": "Root rot",
+      "action": "Remove the plant from its pot, trim away the brown or mushy roots with clean scissors, and repot in fresh, well-draining soil. Water sparingly until the plant shows new healthy growth."
+    },
+    "leaf_nutrient": {
+      "id": "leaf_nutrient",
+      "conclusive": true,
+      "cause": "Nutrient deficiency",
+      "action": "Feed the plant with a balanced houseplant fertiliser at the dilution on the label, and refresh the topsoil. Interveinal yellowing often points to a lack of nitrogen, iron, or magnesium."
+    },
+    "leaf_pest": {
+      "id": "leaf_pest",
+      "conclusive": true,
+      "cause": "Pest infestation",
+      "action": "Isolate the plant from your others, wipe down the leaves and stems, and treat with insecticidal soap or neem oil every few days until the pests are gone. Check the undersides of leaves regularly."
+    },
+    "leaf_sunlight": {
+      "id": "leaf_sunlight",
+      "conclusive": true,
+      "cause": "Sunlight problem",
+      "action": "Match the plant to its light needs: move scorched plants out of harsh direct sun, and move pale or leggy plants closer to a bright window. Rotate the pot periodically so it grows evenly."
+    },
+    "deadend_inconclusive": {
+      "id": "deadend_inconclusive",
+      "conclusive": false,
+      "cause": "",
+      "action": "",
+      "suggestion": "We couldn't pinpoint the problem from these symptoms. Consult a local plant care resource, nursery, or agricultural extension service, ideally with a clear photo of your plant, for a closer diagnosis."
+    }
+  }
+}

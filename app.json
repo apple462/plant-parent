@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": ".tmp-expo",
-    "slug": ".tmp-expo",
+    "name": "plant-parent",
+    "slug": "plant-parent",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "tmpexpo",
+    "scheme": "plantparent",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -34,7 +34,8 @@
             "imageWidth": 76
           }
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
