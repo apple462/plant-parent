@@ -33,6 +33,7 @@
  *    (Req 3.7).
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { PermissionStatus } from 'expo-notifications';
 import { useFocusEffect } from 'expo-router';
@@ -40,6 +41,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
 import { Button, Input, Toast } from '@/components/ui';
 import {
     PREFERRED_REMINDER_HOUR,
@@ -47,10 +49,16 @@ import {
 } from '@/constants/storageKeys';
 import {
     BorderRadius,
+    Elevation,
     SemanticColors,
     Space,
-    Typography,
+    Typography
 } from '@/constants/theme';
+
+/** App display name and version surfaced in the About card. */
+const APP_NAME = 'Plant Parent';
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+const APP_DEVELOPER = 'Developed by Krishnika Gulati';
 
 /** Design default reminder time when no preference is stored: 08:00. */
 const DEFAULT_HOUR = 8;
@@ -203,7 +211,10 @@ export default function SettingsScreen() {
 
         {/* Preferred reminder time -------------------------------------- */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Preferred reminder time</Text>
+          <View style={styles.sectionHeader}>
+            <Icon name="clock" size={20} color={SemanticColors.primary} />
+            <Text style={styles.sectionTitle}>Preferred reminder time</Text>
+          </View>
           <Text style={styles.sectionBody}>
             New care reminders are scheduled for this time of day. Defaults to
             08:00 when not set.
@@ -254,7 +265,10 @@ export default function SettingsScreen() {
 
         {/* Notification permission status ------------------------------- */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Notifications</Text>
+          <View style={styles.sectionHeader}>
+            <Icon name="bell" size={20} color={SemanticColors.primary} />
+            <Text style={styles.sectionTitle}>Notifications</Text>
+          </View>
           <Text style={styles.sectionBody}>
             Care reminders need notification permission to alert you.
           </Text>
@@ -273,6 +287,26 @@ export default function SettingsScreen() {
             />
           ) : null}
         </View>
+
+        {/* About -------------------------------------------------------- */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="info" size={20} color={SemanticColors.primary} />
+            <Text style={styles.sectionTitle}>About</Text>
+          </View>
+
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>App</Text>
+            <Text style={styles.statusValue}>{APP_NAME}</Text>
+          </View>
+
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>Version</Text>
+            <Text style={styles.statusValue}>Version {APP_VERSION}</Text>
+          </View>
+
+          <Text style={styles.sectionBody}>{APP_DEVELOPER}</Text>
+        </View>
       </ScrollView>
 
       <View style={styles.toastWrap} pointerEvents="box-none">
@@ -290,7 +324,7 @@ const styles = StyleSheet.create({
   content: {
     padding: Space.md,
     gap: Space.lg,
-    paddingBottom: Space.xxl,
+    paddingBottom: Space.xxl * 2,
   },
   screenTitle: {
     ...Typography.title,
@@ -303,6 +337,12 @@ const styles = StyleSheet.create({
     borderColor: SemanticColors.border,
     padding: Space.md,
     gap: Space.md,
+    ...Elevation.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
   },
   sectionTitle: {
     ...Typography.subtitle,

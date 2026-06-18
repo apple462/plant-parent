@@ -2,6 +2,9 @@
  * EncyclopediaListScreen — search + browse the bundled offline species list.
  *
  * Task 19.1 REPLACES the placeholder created by task 14.2.
+ * Jungle UI overhaul: the screen now sits on the calm `JungleBackground`
+ * canopy, rows are elevated `surface` cards with leading/affordance icons, and
+ * the list reserves bottom padding so the last rows clear the floating tab bar.
  *
  * Behaviour:
  * - A search field drives a local `query` string. The displayed list is derived
@@ -20,9 +23,12 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { Icon } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
 import { Input } from '@/components/ui';
 import {
     BorderRadius,
+    Elevation,
     FontSize,
     FontWeight,
     SemanticColors,
@@ -48,73 +54,104 @@ export default function EncyclopediaListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchRow}>
-        <Input
-          label="Search"
-          placeholder="Search by common or scientific name"
-          value={query}
-          onChangeText={setQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-        />
-      </View>
-
-      {hasResults ? (
-        <FlatList
-          data={results}
-          keyExtractor={(item) => item.id}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`${item.commonName}, ${item.scientificName}`}
-              onPress={() => handlePressSpecies(item)}
-              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-            >
-              <Text style={styles.commonName}>{item.commonName}</Text>
-              <Text style={styles.scientificName}>{item.scientificName}</Text>
-            </Pressable>
-          )}
-        />
-      ) : (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyText}>No results found</Text>
+    <JungleBackground>
+      <View style={styles.container}>
+        <View style={styles.searchRow}>
+          {/* Decorative leading glyph hinting at the search field. */}
+          <Icon
+            name="search"
+            size={20}
+            color={SemanticColors.textSecondary}
+            style={styles.searchIcon}
+          />
+          <Input
+            containerStyle={styles.searchInput}
+            label="Search"
+            placeholder="Search by common or scientific name"
+            value={query}
+            onChangeText={setQuery}
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+          />
         </View>
-      )}
-    </View>
+
+        {hasResults ? (
+          <FlatList
+            data={results}
+            keyExtractor={(item) => item.id}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${item.commonName}, ${item.scientificName}`}
+                onPress={() => handlePressSpecies(item)}
+                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+              >
+                <Icon name="leaf" size={22} color={SemanticColors.primary} />
+                <View style={styles.rowText}>
+                  <Text style={styles.commonName}>{item.commonName}</Text>
+                  <Text style={styles.scientificName}>{item.scientificName}</Text>
+                </View>
+                <Icon name="forward" size={22} color={SemanticColors.textSecondary} />
+              </Pressable>
+            )}
+          />
+        ) : (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>No results found</Text>
+          </View>
+        )}
+      </View>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SemanticColors.surface,
+    // Transparent so the JungleBackground canopy shows through.
+    backgroundColor: 'transparent',
   },
   searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
     paddingHorizontal: Space.md,
     paddingTop: Space.md,
     paddingBottom: Space.sm,
   },
+  searchIcon: {
+    // Nudge down so it aligns with the input field, not the label above it.
+    marginTop: Space.lg,
+  },
+  searchInput: {
+    flex: 1,
+  },
   listContent: {
     paddingHorizontal: Space.md,
-    paddingBottom: Space.lg,
+    // Clear the floating tab bar so the last rows stay tappable.
+    paddingBottom: Space.xxl * 2,
     gap: Space.sm,
   },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.md,
     paddingVertical: Space.md,
     paddingHorizontal: Space.md,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.surface,
-    gap: Space.xs,
+    ...Elevation.sm,
   },
   rowPressed: {
     backgroundColor: SemanticColors.surfaceMuted,
+  },
+  rowText: {
+    flex: 1,
+    gap: Space.xs,
   },
   commonName: {
     fontSize: FontSize.md,

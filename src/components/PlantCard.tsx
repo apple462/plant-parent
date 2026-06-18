@@ -35,10 +35,11 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CareTaskBadge } from '@/components/CareTaskBadge';
+import { Icon } from '@/components/Icon';
 import {
     BorderRadius,
     type CareStatus,
-    FontSize,
+    Elevation,
     Palette,
     SemanticColors,
     Space,
@@ -117,7 +118,7 @@ export function PlantCard({
         />
       ) : (
         <View style={styles.coverPlaceholder} accessible={false}>
-          <Text style={styles.placeholderIcon}>🌱</Text>
+          <Icon name="plant" size={48} color={SemanticColors.primary} />
         </View>
       )}
 
@@ -125,9 +126,17 @@ export function PlantCard({
         <Text style={styles.name} numberOfLines={1}>
           {plant.displayName}
         </Text>
-        <Text style={styles.dueDate} numberOfLines={1}>
-          {dueLabel}
-        </Text>
+        <View style={styles.dueRow}>
+          <Icon
+            name="calendar"
+            size={14}
+            color={SemanticColors.textSecondary}
+            style={styles.dueIcon}
+          />
+          <Text style={styles.dueDate} numberOfLines={1}>
+            {dueLabel}
+          </Text>
+        </View>
         <CareTaskBadge status={status} />
       </View>
     </Pressable>
@@ -139,10 +148,9 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: Space.sm,
     backgroundColor: SemanticColors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
+    ...Elevation.md,
   },
   cover: {
     width: '100%',
@@ -156,20 +164,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  placeholderIcon: {
-    fontSize: FontSize.display,
-  },
   body: {
     padding: Space.md,
-    gap: Space.xs,
+    gap: Space.sm,
   },
   name: {
     ...Typography.subtitle,
     color: SemanticColors.textPrimary,
   },
+  dueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+  },
+  dueIcon: {
+    marginTop: 1,
+  },
   dueDate: {
     ...Typography.caption,
     color: SemanticColors.textSecondary,
+    flexShrink: 1,
   },
 });
 

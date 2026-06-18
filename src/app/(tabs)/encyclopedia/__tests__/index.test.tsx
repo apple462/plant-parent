@@ -22,6 +22,14 @@ import EncyclopediaListScreen from '../index';
 // The screen imports `{ router }` from 'expo-router' and calls `router.push`.
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
+// The screen wraps its content in `<JungleBackground>`, which pulls in
+// react-native-reanimated and expo-linear-gradient. Those native-backed
+// dependencies are irrelevant to the search/filter behaviour under test, so the
+// backdrop is reduced to a transparent passthrough that just renders children.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 // --- Tests -----------------------------------------------------------------
 
 describe('EncyclopediaListScreen', () => {

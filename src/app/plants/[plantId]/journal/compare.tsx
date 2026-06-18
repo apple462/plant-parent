@@ -46,10 +46,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
 import { LoadingSpinner } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
     SemanticColors,
     Space,
     Typography,
@@ -86,7 +86,7 @@ export default function CompareScreen() {
         <LoadingSpinner label="Loading journal…" />
       ) : error ? (
         <View style={styles.centered}>
-          <Text style={styles.stateIcon}>🥀</Text>
+          <Icon name="alert" size={48} color={SemanticColors.error} />
           <Text style={styles.stateTitle}>Couldn’t load the journal</Text>
           <Text style={styles.stateBody}>
             Something went wrong reading this plant’s entries. Please try again.
@@ -94,7 +94,7 @@ export default function CompareScreen() {
         </View>
       ) : entries.length < 2 ? (
         <View style={styles.centered}>
-          <Text style={styles.stateIcon}>📷</Text>
+          <Icon name="compare" size={48} color={SemanticColors.primary} />
           <Text style={styles.stateTitle}>Not enough to compare yet</Text>
           <Text style={styles.stateBody}>
             Comparison needs at least two journal entries. Add another photo to
@@ -243,9 +243,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Space.lg,
     gap: Space.sm,
-  },
-  stateIcon: {
-    fontSize: FontSize.display,
   },
   stateTitle: {
     ...Typography.heading,

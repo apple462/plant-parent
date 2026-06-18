@@ -14,3 +14,6 @@ export const PREFERRED_REMINDER_HOUR = 'preferred_reminder_hour';
 
 /** Global preferred reminder minute (0–59), stored as a numeric string. Default 0. */
 export const PREFERRED_REMINDER_MINUTE = 'preferred_reminder_minute';
+
+/** User's display name, captured during onboarding. Stored as a plain string. */
+export const USER_NAME = 'user_name';

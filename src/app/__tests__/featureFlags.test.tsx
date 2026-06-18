@@ -72,6 +72,15 @@ jest.mock('@/services/EncyclopediaService', () => ({
 // --- VirtualJungle deps (mirror src/app/(tabs)/__tests__/index.test.tsx) ----
 jest.mock('@/hooks/usePlants', () => ({ usePlants: jest.fn() }));
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
+// useUserName reads AsyncStorage; pin it to null for a deterministic header.
+jest.mock('@/hooks/useUserName', () => ({ useUserName: () => null }));
+
 jest.mock('drizzle-orm/expo-sqlite', () => ({
   useLiveQuery: jest.fn(() => ({ data: [], error: undefined, updatedAt: Date.now() })),
 }));

@@ -41,19 +41,22 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
 import { PlantCard } from '@/components/PlantCard';
 import { Button, LoadingSpinner } from '@/components/ui';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import {
     BorderRadius,
-    FontSize,
+    Elevation,
     SemanticColors,
     Space,
-    Typography,
+    Typography
 } from '@/constants/theme';
 import { db } from '@/db';
 import { care_schedules } from '@/db/schema';
 import { usePlants } from '@/hooks/usePlants';
+import { useUserName } from '@/hooks/useUserName';
 import type { Plant } from '@/services/PlantService';
 import { isDueToday as isDueTodayAt, isOverdue as isOverdueAt } from '@/utils/dateUtils';
 
@@ -117,6 +120,7 @@ function deriveDueData(rows: { plantId: string; nextDueAt: number | null }[]): {
 export default function VirtualJungleScreen() {
   const router = useRouter();
   const { plants, isLoading, error } = usePlants();
+  const userName = useUserName();
 
   // Live query over the whole care_schedules table (see file header for why a
   // single table-wide query is used instead of a per-card hook).
@@ -167,71 +171,81 @@ export default function VirtualJungleScreen() {
   // Error takes precedence over a still-pending load once the timeout fires.
   if (hasError) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.centered}>
-          <Text style={styles.errorIcon}>🥀</Text>
-          <Text style={styles.errorTitle}>Couldn&apos;t load your jungle</Text>
-          <Text style={styles.errorBody}>
-            Something went wrong loading your plants. Please try again.
-          </Text>
-          <Button label="Retry" onPress={handleRetry} style={styles.retryButton} />
-        </View>
-      </SafeAreaView>
+      <JungleBackground>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <View style={styles.centered}>
+            <Icon name="alert" size={56} color={SemanticColors.error} />
+            <Text style={styles.errorTitle}>Couldn&apos;t load your jungle</Text>
+            <Text style={styles.errorBody}>
+              Something went wrong loading your plants. Please try again.
+            </Text>
+            <Button label="Retry" onPress={handleRetry} style={styles.retryButton} />
+          </View>
+        </SafeAreaView>
+      </JungleBackground>
     );
   }
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <LoadingSpinner label="Loading your jungle…" />
-      </SafeAreaView>
+      <JungleBackground>
+        <SafeAreaView style={styles.container} edges={['top']}>
+          <LoadingSpinner label="Loading your jungle…" />
+        </SafeAreaView>
+      </JungleBackground>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/*
-        Future-phase weather advisory banner (Req 12.1, 12.2, 12.3). The mount
-        is gated entirely behind FEATURE_FLAGS.WEATHER_SERVICE_ENABLED — when
-        false (MVP default) nothing weather-related renders. This is a NO-OP
-        stub; the actual weather-based watering advisories are implemented in a
-        later phase.
-      */}
-      {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? (
-        <View
-          testID="weather-advisory-banner"
-          accessible
-          accessibilityLabel="Weather advisory"
-          style={styles.weatherBanner}>
-          <Text style={styles.weatherBannerText}>Weather advisory</Text>
-        </View>
-      ) : null}
-      <FlatList
-        data={plants}
-        keyExtractor={(plant) => plant.id}
-        numColumns={2}
-        contentContainerStyle={
-          plants.length === 0 ? styles.emptyListContent : styles.listContent
-        }
-        columnWrapperStyle={plants.length > 0 ? styles.columnWrapper : undefined}
-        ListHeaderComponent={
-          <SummaryHeader dueTodayCount={dueTodayCount} plantCount={plants.length} />
-        }
-        ListEmptyComponent={<EmptyState onAddPlant={handleAddPlant} />}
-        renderItem={({ item }) => {
-          const status = statusByPlant.get(item.id) ?? EMPTY_STATUS;
-          return (
-            <PlantCard
-              plant={item}
-              nextDueAt={status.nextDueAt}
-              isDueToday={status.isDueToday}
-              isOverdue={status.isOverdue}
-              onPress={() => handleOpenPlant(item)}
+    <JungleBackground>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        {/*
+          Future-phase weather advisory banner (Req 12.1, 12.2, 12.3). The mount
+          is gated entirely behind FEATURE_FLAGS.WEATHER_SERVICE_ENABLED — when
+          false (MVP default) nothing weather-related renders. This is a NO-OP
+          stub; the actual weather-based watering advisories are implemented in a
+          later phase.
+        */}
+        {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? (
+          <View
+            testID="weather-advisory-banner"
+            accessible
+            accessibilityLabel="Weather advisory"
+            style={styles.weatherBanner}>
+            <Text style={styles.weatherBannerText}>Weather advisory</Text>
+          </View>
+        ) : null}
+        <FlatList
+          data={plants}
+          keyExtractor={(plant) => plant.id}
+          numColumns={2}
+          contentContainerStyle={
+            plants.length === 0 ? styles.emptyListContent : styles.listContent
+          }
+          columnWrapperStyle={plants.length > 0 ? styles.columnWrapper : undefined}
+          ListHeaderComponent={
+            <SummaryHeader
+              dueTodayCount={dueTodayCount}
+              plantCount={plants.length}
+              userName={userName}
             />
-          );
-        }}
-      />
-    </SafeAreaView>
+          }
+          ListEmptyComponent={<EmptyState onAddPlant={handleAddPlant} />}
+          renderItem={({ item }) => {
+            const status = statusByPlant.get(item.id) ?? EMPTY_STATUS;
+            return (
+              <PlantCard
+                plant={item}
+                nextDueAt={status.nextDueAt}
+                isDueToday={status.isDueToday}
+                isOverdue={status.isOverdue}
+                onPress={() => handleOpenPlant(item)}
+              />
+            );
+          }}
+        />
+      </SafeAreaView>
+    </JungleBackground>
   );
 }
 
@@ -242,21 +256,26 @@ export default function VirtualJungleScreen() {
 function SummaryHeader({
   dueTodayCount,
   plantCount,
+  userName,
 }: {
   dueTodayCount: number;
   plantCount: number;
+  userName: string | null;
 }) {
   const dueLabel =
     dueTodayCount === 1 ? '1 task due today' : `${dueTodayCount} tasks due today`;
   const plantLabel = plantCount === 1 ? '1 plant' : `${plantCount} plants`;
+  const title = userName ? `${userName}'s Jungle` : 'My Jungle';
   return (
     <View style={styles.summary}>
-      <Text style={styles.summaryTitle}>Virtual Jungle</Text>
+      <Text style={styles.summaryTitle}>{title}</Text>
       <View style={styles.summaryBadgeRow}>
         <View style={styles.summaryBadge} accessible accessibilityLabel={plantLabel}>
+          <Icon name="leaf" size={16} color={SemanticColors.primary} />
           <Text style={styles.summaryBadgeText}>{plantLabel}</Text>
         </View>
         <View style={styles.summaryBadge} accessible accessibilityLabel={dueLabel}>
+          <Icon name="calendar" size={16} color={SemanticColors.primary} />
           <Text style={styles.summaryBadgeText}>{dueLabel}</Text>
         </View>
       </View>
@@ -268,7 +287,7 @@ function SummaryHeader({
 function EmptyState({ onAddPlant }: { onAddPlant: () => void }) {
   return (
     <View style={styles.centered}>
-      <Text style={styles.emptyIcon}>🪴</Text>
+      <Icon name="plant" size={56} color={SemanticColors.primary} />
       <Text style={styles.emptyTitle}>Your jungle is empty</Text>
       <Text style={styles.emptyBody}>
         Add your first plant to start tracking its care and growth.
@@ -281,7 +300,7 @@ function EmptyState({ onAddPlant }: { onAddPlant: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   centered: {
     flex: 1,
@@ -292,7 +311,8 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: Space.sm,
-    paddingBottom: Space.xxl,
+    // Extra bottom padding so the last row of cards clears the floating tab bar.
+    paddingBottom: Space.xxl * 2,
   },
   emptyListContent: {
     flexGrow: 1,
@@ -302,12 +322,12 @@ const styles = StyleSheet.create({
   },
   summary: {
     paddingHorizontal: Space.sm,
-    paddingTop: Space.sm,
-    paddingBottom: Space.md,
-    gap: Space.sm,
+    paddingTop: Space.md,
+    paddingBottom: Space.lg,
+    gap: Space.md,
   },
   summaryTitle: {
-    ...Typography.title,
+    ...Typography.display,
     color: SemanticColors.textPrimary,
   },
   summaryBadgeRow: {
@@ -316,18 +336,19 @@ const styles = StyleSheet.create({
     gap: Space.sm,
   },
   summaryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: SemanticColors.primaryMuted,
+    gap: Space.xs,
+    backgroundColor: SemanticColors.surface,
     borderRadius: BorderRadius.full,
     paddingHorizontal: Space.md,
     paddingVertical: Space.xs,
+    ...Elevation.sm,
   },
   summaryBadgeText: {
     ...Typography.bodyBold,
     color: SemanticColors.primary,
-  },
-  emptyIcon: {
-    fontSize: FontSize.display,
   },
   emptyTitle: {
     ...Typography.heading,
@@ -342,9 +363,6 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: Space.md,
     alignSelf: 'stretch',
-  },
-  errorIcon: {
-    fontSize: FontSize.display,
   },
   errorTitle: {
     ...Typography.heading,
@@ -365,7 +383,8 @@ const styles = StyleSheet.create({
     marginTop: Space.sm,
     padding: Space.md,
     borderRadius: BorderRadius.md,
-    backgroundColor: SemanticColors.primaryMuted,
+    backgroundColor: SemanticColors.surface,
+    ...Elevation.sm,
   },
   weatherBannerText: {
     ...Typography.bodyBold,

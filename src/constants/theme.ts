@@ -281,3 +281,60 @@ export type BorderRadiusToken = keyof typeof BorderRadius;
 export type FontSizeToken = keyof typeof FontSize;
 export type FontWeightToken = keyof typeof FontWeight;
 export type TypographyVariant = keyof typeof Typography;
+
+/* -------------------------------------------------------------------------- */
+/* Jungle theme — gradients & elevation                                       */
+/*                                                                            */
+/* Added for the jungle-themed UI overhaul. These extend the design tokens    */
+/* above without removing any existing exports. Consumed by JungleBackground  */
+/* (soft canopy backdrop) and floating surfaces (FloatingTabBar, cards).      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Soft, airy canopy gradient for full-screen backdrops.
+ *
+ * Three light green stops (top → bottom) that read as a sun-dappled forest
+ * canopy while keeping foreground text fully legible. Typed as a 3-tuple via
+ * `as const` so it satisfies `expo-linear-gradient`'s `colors` prop, which
+ * requires at least two colours known at compile time.
+ */
+export const JungleGradient = ['#F4FAF5', '#E8F5EC', '#DCEFE0'] as const;
+
+/**
+ * Deeper canopy gradient for headers / hero areas where a richer green is
+ * wanted behind light (`onPrimary`) text. Still a typed 3-tuple.
+ */
+export const JungleGradientDeep = ['#2E7D5B', '#256A4D', '#143A2A'] as const;
+
+/**
+ * React Native shadow presets in three sizes. Each preset is a ready-to-spread
+ * style object carrying iOS shadow props plus an Android `elevation`.
+ *
+ * The shadow colour is a deep green (`Palette.green[900]`) so surfaces cast a
+ * subtle jungle-tinted shadow rather than a flat grey one.
+ */
+export const Elevation = {
+  sm: {
+    shadowColor: Palette.green[900],
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  md: {
+    shadowColor: Palette.green[900],
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
+  },
+  lg: {
+    shadowColor: Palette.green[900],
+    shadowOpacity: 0.16,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+} as const;
+
+export type ElevationToken = keyof typeof Elevation;

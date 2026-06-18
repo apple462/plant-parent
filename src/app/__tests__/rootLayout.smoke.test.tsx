@@ -44,6 +44,15 @@ jest.mock('drizzle-orm/expo-sqlite', () => ({
 
 jest.mock('@/hooks/usePlants', () => ({ usePlants: jest.fn() }));
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so VirtualJungleScreen renders deterministically.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
+// useUserName reads AsyncStorage; pin it to null for a deterministic header.
+jest.mock('@/hooks/useUserName', () => ({ useUserName: () => null }));
+
 // Onboarding flag present ('true') so the root layout does NOT redirect.
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn().mockResolvedValue('true'),

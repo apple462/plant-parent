@@ -111,7 +111,7 @@ jest.mock('@/stores/uiStore', () => ({
 
 jest.mock('@/components/ui', () => {
   const React = require('react');
-  const { Pressable, Text } = require('react-native');
+  const { Pressable, Text, TextInput, View } = require('react-native');
   return {
     Button: ({ label, onPress, accessibilityLabel }: any) =>
       React.createElement(
@@ -123,6 +123,18 @@ jest.mock('@/components/ui', () => {
           testID: `button-${label}`,
         },
         React.createElement(Text, null, label),
+      ),
+    Input: ({ label, value, onChangeText, placeholder }: any) =>
+      React.createElement(
+        View,
+        { testID: `input-${label}` },
+        React.createElement(Text, null, label),
+        React.createElement(TextInput, {
+          accessibilityLabel: label,
+          value,
+          onChangeText,
+          placeholder,
+        }),
       ),
     ErrorBanner: () => null,
   };

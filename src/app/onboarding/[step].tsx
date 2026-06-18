@@ -26,11 +26,12 @@
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-import { Button } from '@/components/ui';
-import { ONBOARDING_COMPLETE } from '@/constants/storageKeys';
+import { Icon, type IconName } from '@/components/Icon';
+import { Button, Input } from '@/components/ui';
+import { ONBOARDING_COMPLETE, USER_NAME } from '@/constants/storageKeys';
 import {
     BorderRadius,
     Palette,
@@ -47,8 +48,8 @@ const TOTAL_STEPS = 4;
 const PERMISSION_STEP = 4;
 
 interface StepContent {
-  /** Decorative emoji shown above the title. */
-  icon: string;
+  /** Semantic icon shown above the title. */
+  icon: IconName;
   /** Step headline. */
   title: string;
   /** Intro copy describing the feature (Req 10.2). */
@@ -62,22 +63,22 @@ interface StepContent {
  */
 const STEP_CONTENT: Record<number, StepContent> = {
   1: {
-    icon: '🪴',
+    icon: 'plant',
     title: 'Plant Kingdom',
     body: 'Build a personal repository of every plant you own. Give each one a profile with a name, species, location, and cover photo.',
   },
   2: {
-    icon: '💧',
+    icon: 'water',
     title: 'Care Reminders',
     body: 'Set watering, fertilising, and pruning schedules. Plant Parent reminds you exactly when each plant needs attention.',
   },
   3: {
-    icon: '📸',
+    icon: 'camera',
     title: 'Growth Journal',
     body: 'Photograph your plants over time and watch them flourish through a timestamped photo timeline.',
   },
   4: {
-    icon: '🌿',
+    icon: 'home',
     title: 'Virtual Jungle',
     body: "Your home dashboard ties it all together — see every plant and what needs care today at a glance.\n\nReminders notify you when it's time to water, fertilise, or prune your plants.",
   },
@@ -120,9 +121,35 @@ async function completeOnboarding(): Promise<void> {
   router.replace('/');
 }
 
+/**
+ * Persist the user's display name captured on step 1 (Req 10.2).
+ *
+ * The name is optional: an empty / whitespace-only value is skipped entirely.
+ * Per Req 10.3 a write failure must NOT block navigation, so the write is
+ * wrapped in try/catch and any error is swallowed — the user still advances to
+ * the next step. The value is trimmed before storage.
+ */
+async function persistUserName(rawName: string): Promise<void> {
+  const name = rawName.trim();
+  if (name.length === 0) {
+    return;
+  }
+  try {
+    await AsyncStorage.setItem(USER_NAME, name);
+  } catch {
+    // Intentionally ignored (Req 10.3): a write failure must not block the
+    // onboarding flow; the name is simply not persisted.
+  }
+}
+
 export default function OnboardingStepScreen() {
   const params = useLocalSearchParams<{ step?: string }>();
   const step = parseStep(params.step);
+
+  // Local state for the step-1 name capture. Each onboarding step is its own
+  // route, so this state does not survive navigation — the value is persisted
+  // to AsyncStorage on "Next" before we leave step 1 (see handlePrimaryPress).
+  const [name, setName] = useState('');
 
   // Request notification permissions when the user reaches the permission step
   // (Req 10.4). Fire-and-forget: the result is ignored so a denial never blocks
@@ -142,13 +169,23 @@ export default function OnboardingStepScreen() {
 
   const content = STEP_CONTENT[step];
   const isLastStep = step === TOTAL_STEPS;
+  const isFirstStep = step === 1;
 
   const handlePrimaryPress = () => {
     if (isLastStep) {
       void completeOnboarding();
-    } else {
-      router.push(`/onboarding/${step + 1}`);
+      return;
     }
+    if (isFirstStep) {
+      // Persist the captured name (if any) BEFORE navigating, since step state
+      // does not survive the route change. A write failure is swallowed and
+      // never blocks navigation (Req 10.3).
+      void persistUserName(name).finally(() => {
+        router.push(`/onboarding/${step + 1}`);
+      });
+      return;
+    }
+    router.push(`/onboarding/${step + 1}`);
   };
 
   const handleSkipPress = () => {
@@ -170,9 +207,25 @@ export default function OnboardingStepScreen() {
         </View>
 
         <View style={styles.content}>
-          <Text style={styles.icon}>{content.icon}</Text>
+          <View style={styles.iconBadge}>
+            <Icon name={content.icon} size={72} color={SemanticColors.primary} />
+          </View>
           <Text style={styles.title}>{content.title}</Text>
           <Text style={styles.body}>{content.body}</Text>
+
+          {/* Name capture — step 1 only (Req 10.2). */}
+          {isFirstStep ? (
+            <Input
+              label="What should we call you?"
+              placeholder="Your name"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+              returnKeyType="next"
+              containerStyle={styles.nameInput}
+            />
+          ) : null}
         </View>
 
         <View style={styles.footer}>
@@ -219,9 +272,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: Space.md,
   },
-  icon: {
-    fontSize: 72,
-    textAlign: 'center',
+  iconBadge: {
+    width: 128,
+    height: 128,
+    borderRadius: BorderRadius.full,
+    backgroundColor: SemanticColors.primaryMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nameInput: {
+    alignSelf: 'stretch',
+    marginTop: Space.sm,
   },
   title: {
     ...Typography.title,

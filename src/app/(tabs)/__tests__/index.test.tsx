@@ -34,6 +34,16 @@ import VirtualJungleScreen from '../index';
 
 jest.mock('@/hooks/usePlants', () => ({ usePlants: jest.fn() }));
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
+// useUserName reads AsyncStorage; pin it to null so the header is deterministic
+// ("My Jungle") without touching native storage.
+jest.mock('@/hooks/useUserName', () => ({ useUserName: () => null }));
+
 jest.mock('drizzle-orm/expo-sqlite', () => ({
   useLiveQuery: jest.fn(() => ({ data: [], error: undefined, updatedAt: Date.now() })),
 }));

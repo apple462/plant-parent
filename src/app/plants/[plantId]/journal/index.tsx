@@ -30,11 +30,11 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Icon } from '@/components/Icon';
 import { JournalTimeline } from '@/components/JournalTimeline';
 import { Button, ConfirmationDialog, LoadingSpinner } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
     SemanticColors,
     Space,
     Typography,
@@ -104,7 +104,7 @@ export default function GrowthJournalScreen() {
         <LoadingSpinner label="Loading journal…" />
       ) : error ? (
         <View style={styles.centered}>
-          <Text style={styles.errorIcon}>🥀</Text>
+          <Icon name="alert" size={48} color={SemanticColors.error} />
           <Text style={styles.errorTitle}>Couldn’t load the journal</Text>
           <Text style={styles.errorBody}>
             Something went wrong reading this plant’s entries. Please try again.
@@ -148,7 +148,7 @@ export default function GrowthJournalScreen() {
 function EmptyState({ onAddEntry }: { onAddEntry: () => void }) {
   return (
     <View style={styles.centered}>
-      <Text style={styles.emptyIcon}>📷</Text>
+      <Icon name="camera" size={48} color={SemanticColors.primary} />
       <Text style={styles.emptyTitle}>No journal entries yet</Text>
       <Text style={styles.emptyBody}>
         Add your first photo to start tracking how this plant grows over time.
@@ -180,9 +180,6 @@ const styles = StyleSheet.create({
     padding: Space.lg,
     gap: Space.sm,
   },
-  emptyIcon: {
-    fontSize: FontSize.display,
-  },
   emptyTitle: {
     ...Typography.heading,
     color: SemanticColors.textPrimary,
@@ -196,9 +193,6 @@ const styles = StyleSheet.create({
   addButton: {
     marginTop: Space.md,
     alignSelf: 'stretch',
-  },
-  errorIcon: {
-    fontSize: FontSize.display,
   },
   errorTitle: {
     ...Typography.heading,

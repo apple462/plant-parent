@@ -58,10 +58,12 @@ import {
     Pressable,
     ScrollView,
     StyleSheet,
+    Switch,
     Text,
-    View,
+    View
 } from 'react-native';
 
+import { Icon, type IconName } from '@/components/Icon';
 import {
     Button,
     ConfirmationDialog,
@@ -72,17 +74,19 @@ import {
 } from '@/components/ui';
 import {
     BorderRadius,
+    Elevation,
     FontSize,
     FontWeight,
     Palette,
     SemanticColors,
-    Space,
+    Space
 } from '@/constants/theme';
 import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
 import { usePlants } from '@/hooks/usePlants';
 import { type CareType } from '@/services/CareService';
 import { PlantService, type UpdatePlantInput } from '@/services/PlantService';
 import { storageService } from '@/services/StorageService';
+import { useCareStore } from '@/stores/careStore';
 import { formatDDMMYYYY } from '@/utils/dateUtils';
 import { validateDisplayName, validatePhoto } from '@/utils/validation';
 
@@ -107,11 +111,11 @@ type PhotoEdit =
 
 const MAX_LABEL_LENGTH = 100;
 
-/** Display order and labels for the three care sections. */
-const CARE_SECTIONS: { type: CareType; title: string }[] = [
-  { type: 'watering', title: 'Watering' },
-  { type: 'fertilising', title: 'Fertilising' },
-  { type: 'pruning', title: 'Pruning' },
+/** Display order, labels, and matching icon for the three care sections. */
+const CARE_SECTIONS: { type: CareType; title: string; icon: IconName }[] = [
+  { type: 'watering', title: 'Watering', icon: 'water' },
+  { type: 'fertilising', title: 'Fertilising', icon: 'fertilise' },
+  { type: 'pruning', title: 'Pruning', icon: 'prune' },
 ];
 
 /** Map a filename extension to a cover-photo MIME type (jpeg/png only). */
@@ -148,6 +152,9 @@ export default function PlantProfileScreen() {
   );
   const { schedules } = useCareSchedule(plantId);
 
+  // Master reminders toggle — flips reminders for every schedule of the plant.
+  const toggleReminder = useCareStore((s) => s.toggleReminder);
+
   // Index care schedules by type for quick lookup in the view.
   const byType = useMemo(() => {
     const map = {} as Partial<Record<CareType, ScheduleWithStatus>>;
@@ -156,6 +163,18 @@ export default function PlantProfileScreen() {
     }
     return map;
   }, [schedules]);
+
+  /**
+   * The plant's master "reminders on" state: true when ANY schedule still has
+   * reminders enabled. Treated as the value for the master Switch so a single
+   * remaining enabled care type keeps the toggle on.
+   */
+  const anyRemindersOn = useMemo(
+    () => schedules.some((s) => s.schedule.reminderEnabled),
+    [schedules],
+  );
+  const hasSchedules = schedules.length > 0;
+  const [togglingReminders, setTogglingReminders] = useState(false);
 
   // Edit-mode state.
   const [editing, setEditing] = useState(false);
@@ -370,6 +389,28 @@ export default function PlantProfileScreen() {
 
   const previewUri = editPreviewUri();
 
+  // --- Master reminders toggle --------------------------------------------
+  /**
+   * Enable or disable reminders for EVERY schedule of this plant at once.
+   * Awaits all per-schedule `toggleReminder` calls; the live `useCareSchedule`
+   * hook then re-renders with the updated `reminderEnabled` flags.
+   */
+  async function handleToggleAllReminders(value: boolean) {
+    if (schedules.length === 0) {
+      return;
+    }
+    setTogglingReminders(true);
+    try {
+      await Promise.all(
+        schedules.map((s) => toggleReminder(s.schedule.id, value)),
+      );
+    } catch (error) {
+      console.warn('PlantProfileScreen: failed to toggle reminders', error);
+    } finally {
+      setTogglingReminders(false);
+    }
+  }
+
   return (
     <ScrollView
       style={styles.flex}
@@ -510,7 +551,43 @@ export default function PlantProfileScreen() {
       {!editing ? (
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>Care</Text>
-          {CARE_SECTIONS.map(({ type, title }) => {
+
+          {/* Per-plant reminders master toggle — flips reminders for every
+              care type at once. Reflects `anyRemindersOn`. */}
+          <View style={[styles.reminderCard, Elevation.sm]}>
+            <View style={styles.reminderLabelGroup}>
+              <Icon
+                name={anyRemindersOn && hasSchedules ? 'bell' : 'bell-off'}
+                size={22}
+                color={
+                  anyRemindersOn && hasSchedules
+                    ? SemanticColors.primary
+                    : SemanticColors.textSecondary
+                }
+              />
+              <View style={styles.reminderTextGroup}>
+                <Text style={styles.reminderTitle}>Reminders</Text>
+                <Text style={styles.reminderHint}>
+                  {hasSchedules
+                    ? anyRemindersOn
+                      ? 'On for this plant'
+                      : 'Off for this plant'
+                    : 'Add a care schedule first'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              accessibilityLabel="Reminders for this plant"
+              value={anyRemindersOn && hasSchedules}
+              disabled={!hasSchedules || togglingReminders}
+              onValueChange={(value) => {
+                void handleToggleAllReminders(value);
+              }}
+              trackColor={{ false: Palette.neutral[300], true: SemanticColors.primary }}
+            />
+          </View>
+
+          {CARE_SECTIONS.map(({ type, title, icon }) => {
             const status = byType[type];
             const lastLabel = status?.lastCompletedAt
               ? formatDDMMYYYY(status.lastCompletedAt)
@@ -520,9 +597,12 @@ export default function PlantProfileScreen() {
               : 'Not scheduled';
             const reminderOff = status != null && !status.schedule.reminderEnabled;
             return (
-              <View key={type} style={styles.careCard}>
+              <View key={type} style={[styles.careCard, Elevation.sm]}>
                 <View style={styles.careHeaderRow}>
-                  <Text style={styles.careTitle}>{title}</Text>
+                  <View style={styles.careTitleGroup}>
+                    <Icon name={icon} size={20} color={SemanticColors.primary} />
+                    <Text style={styles.careTitle}>{title}</Text>
+                  </View>
                   {reminderOff ? (
                     <View style={styles.disabledIndicator}>
                       <Text style={styles.disabledIndicatorText}>Reminder off</Text>
@@ -709,10 +789,45 @@ const styles = StyleSheet.create({
     borderColor: SemanticColors.border,
     backgroundColor: SemanticColors.surface,
   },
+  reminderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Space.md,
+    padding: Space.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: SemanticColors.border,
+    backgroundColor: SemanticColors.surface,
+  },
+  reminderLabelGroup: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+  },
+  reminderTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  reminderTitle: {
+    fontSize: FontSize.md,
+    fontWeight: FontWeight.semibold,
+    color: SemanticColors.textPrimary,
+  },
+  reminderHint: {
+    fontSize: FontSize.xs,
+    color: SemanticColors.textSecondary,
+  },
   careHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  careTitleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
   },
   careTitle: {
     fontSize: FontSize.md,

@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { BorderRadius, FontSize, FontWeight, SemanticColors, Space } from '@/constants/theme';
 
 /**
@@ -62,6 +63,7 @@ export function ErrorBanner({ code, message, onDismiss, style }: ErrorBannerProp
 
   return (
     <View accessibilityRole="alert" accessibilityLiveRegion="polite" style={[styles.container, style]}>
+      <Icon name="alert" size={16} color={SemanticColors.error} />
       <Text style={styles.message}>{resolved}</Text>
       {onDismiss ? (
         <Pressable
@@ -70,7 +72,7 @@ export function ErrorBanner({ code, message, onDismiss, style }: ErrorBannerProp
           hitSlop={Space.sm}
           onPress={onDismiss}
           style={({ pressed }) => [styles.dismiss, pressed && styles.dismissPressed]}>
-          <Text style={styles.dismissLabel}>✕</Text>
+          <Icon name="close" size={18} color={SemanticColors.error} />
         </Pressable>
       ) : null}
     </View>
@@ -103,9 +105,5 @@ const styles = StyleSheet.create({
   },
   dismissPressed: {
     opacity: 0.6,
-  },
-  dismissLabel: {
-    fontSize: FontSize.md,
-    color: SemanticColors.error,
   },
 });
