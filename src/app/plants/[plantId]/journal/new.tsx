@@ -64,13 +64,16 @@ import {
     View,
 } from 'react-native';
 
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ErrorBanner, TextArea } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
-    FontWeight,
+    Elevation,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { JournalService } from '@/services/JournalService';
 
@@ -265,10 +268,12 @@ export default function JournalEntryForm() {
   }
 
   return (
+    <JungleBackground>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: 'Add Journal Entry' }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Add Journal Entry" onBack={() => router.back()} />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled">
@@ -362,24 +367,29 @@ export default function JournalEntryForm() {
         />
       </ScrollView>
     </KeyboardAvoidingView>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: SemanticColors.surface },
+  flex: { flex: 1, backgroundColor: 'transparent' },
   content: {
     padding: Space.lg,
     gap: Space.lg,
+    paddingBottom: TabBarClearance,
   },
   permissionBlock: {
     gap: Space.sm,
   },
   section: {
     gap: Space.sm,
+    backgroundColor: SemanticColors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Space.md,
+    ...Elevation.sm,
   },
   sectionLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   photoButtons: {
@@ -395,7 +405,7 @@ const styles = StyleSheet.create({
   photoPreview: {
     width: '100%',
     height: 240,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.surfaceMuted,
   },
   removeBtn: {
@@ -407,12 +417,11 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   removeBtnText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.caption,
     color: SemanticColors.error,
   },
   inlineError: {
-    fontSize: FontSize.xs,
+    ...Typography.label,
     color: SemanticColors.error,
   },
   submit: {

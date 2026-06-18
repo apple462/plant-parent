@@ -5,7 +5,7 @@
  *  - real-time filtering: typing in the search field filters the list so only
  *    matching entries render;
  *  - clear restores the full list: clearing the query shows all entries again;
- *  - no-results message: a query matching nothing renders "No results found".
+ *  - no-results message: a query matching nothing renders "No species found".
  *
  * The REAL `EncyclopediaService` is used (it reads the bundled `encyclopedia.json`;
  * it is pure with no native dependencies), so the search/filter behaviour is
@@ -78,13 +78,13 @@ describe('EncyclopediaListScreen', () => {
     expect(getByText('Snake Plant')).toBeTruthy();
   });
 
-  it('shows "No results found" when nothing matches the query (Req 7.7)', async () => {
+  it('shows "No species found" when nothing matches the query (Req 7.7)', async () => {
     const { getByText, getByLabelText, queryByText } = await render(<EncyclopediaListScreen />);
 
     await fireEvent.changeText(getByLabelText('Search'), 'zzzznotaplant');
 
     // The empty-state message replaces the list.
-    expect(getByText('No results found')).toBeTruthy();
+    expect(getByText('No species found')).toBeTruthy();
     // No result rows are rendered.
     expect(queryByText('Snake Plant')).toBeNull();
     expect(queryByText('Golden Pothos')).toBeNull();

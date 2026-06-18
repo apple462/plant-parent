@@ -21,8 +21,15 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 // JS transformer can't parse. Stub it out — it has no runtime behaviour here.
 jest.mock('@/global.css', () => ({}), { virtual: true });
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ plantId: 'p1' }),
+  useRouter: () => ({ back: jest.fn() }),
 }));
 
 jest.mock('@/db', () => ({

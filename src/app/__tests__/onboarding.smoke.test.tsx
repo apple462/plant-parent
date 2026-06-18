@@ -109,6 +109,12 @@ jest.mock('@/stores/uiStore', () => ({
 
 // --- UI primitives mock ----------------------------------------------------
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 jest.mock('@/components/ui', () => {
   const React = require('react');
   const { Pressable, Text, TextInput, View } = require('react-native');

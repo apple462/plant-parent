@@ -45,6 +45,7 @@ function toPlant(row: PlantRow): Plant {
     speciesName: optional(row.speciesName),
     locationLabel: optional(row.locationLabel),
     coverPhotoPath: optional(row.coverPhotoPath),
+    quantity: row.quantity,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),
   };

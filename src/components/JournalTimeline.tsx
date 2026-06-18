@@ -39,6 +39,7 @@ import {
     BorderRadius,
     SemanticColors,
     Space,
+    TabBarClearance,
     Typography,
 } from '@/constants/theme';
 import { sortEntriesForDisplay, type JournalEntry } from '@/services/JournalService';
@@ -146,6 +147,7 @@ export function JournalTimeline({
 const styles = StyleSheet.create({
   content: {
     padding: Space.md,
+    paddingBottom: TabBarClearance,
     gap: Space.md,
   },
   item: {

@@ -44,7 +44,7 @@
  */
 import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Image,
     KeyboardAvoidingView,
@@ -56,18 +56,23 @@ import {
     View,
 } from 'react-native';
 
-import { Button, ErrorBanner, Input } from '@/components/ui';
+import { Icon } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Autocomplete, Button, ErrorBanner, Input } from '@/components/ui';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import {
     BorderRadius,
-    FontSize,
-    FontWeight,
+    Elevation,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
+import { usePlants } from '@/hooks/usePlants';
 import { CareService, MAX_INTERVAL_DAYS, MIN_INTERVAL_DAYS, type CareType } from '@/services/CareService';
 import { EncyclopediaService } from '@/services/EncyclopediaService';
-import { PlantService } from '@/services/PlantService';
+import { MAX_QUANTITY, MIN_QUANTITY, PlantService } from '@/services/PlantService';
 import { storageService } from '@/services/StorageService';
 import { validateDisplayName, validatePhoto } from '@/utils/validation';
 
@@ -127,6 +132,25 @@ function deriveFilename(fileName: string | null | undefined, uri: string): strin
 
 const MAX_LABEL_LENGTH = 100;
 
+/**
+ * Validate the quantity text, returning an inline error message or `null`.
+ * Accepts whole numbers in [MIN_QUANTITY, MAX_QUANTITY].
+ */
+function quantityErrorFor(text: string): string | null {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) {
+    return 'Enter how many plants.';
+  }
+  if (!/^\d+$/.test(trimmed)) {
+    return `Enter a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}.`;
+  }
+  const value = Number.parseInt(trimmed, 10);
+  if (value < MIN_QUANTITY || value > MAX_QUANTITY) {
+    return `Enter a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}.`;
+  }
+  return null;
+}
+
 export default function PlantFormScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -143,9 +167,34 @@ export default function PlantFormScreen() {
     [speciesId],
   );
 
+  // Autocomplete option pools — species from the bundled Encyclopedia,
+  // locations from this user's own existing plants. Both are just shortcuts
+  // onto an existing value; typing something new is always still allowed.
+  const speciesOptions = useMemo(
+    () => EncyclopediaService.listAll().map((entry) => entry.commonName),
+    [],
+  );
+  const { plants: existingPlants } = usePlants();
+  const locationOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const ordered: string[] = [];
+    for (const p of existingPlants) {
+      if (p.locationLabel && !seen.has(p.locationLabel)) {
+        seen.add(p.locationLabel);
+        ordered.push(p.locationLabel);
+      }
+    }
+    return ordered;
+  }, [existingPlants]);
+
   const [displayName, setDisplayName] = useState('');
   const [speciesName, setSpeciesName] = useState(prefillSpecies?.commonName ?? '');
   const [locationLabel, setLocationLabel] = useState('');
+  // How many physical plants this one record represents (e.g. 3 of the same
+  // Snake Plant share a single profile and care schedule instead of needing
+  // 3 separate entries).
+  const [quantityText, setQuantityText] = useState('1');
+  const [quantityError, setQuantityError] = useState<string | null>(null);
 
   // Care-interval fields pre-filled from the "Use This Plant" CTA (Req 7.5).
   const [wateringDays, setWateringDays] = useState(() =>
@@ -157,6 +206,31 @@ export default function PlantFormScreen() {
   const [pruningDays, setPruningDays] = useState(() =>
     paramToInterval(firstParam(params.pruningDays)),
   );
+
+  // Species-based smart defaults: when the typed species name exactly matches
+  // an Encyclopedia entry (e.g. the user types "Monstera deliciosa" without
+  // going through the encyclopedia "Use This Plant" CTA), auto-suggest the
+  // care-interval fields and surface the light requirement as a hint. Each
+  // interval is only filled in while still empty, so it never clobbers a
+  // value the user already typed; `appliedMatchIdRef` ensures we only apply a
+  // given match once (so clearing a field afterwards doesn't get re-filled).
+  const matchedSpecies = useMemo(
+    () => (speciesName.trim().length > 0 ? EncyclopediaService.matchByName(speciesName) : null),
+    [speciesName],
+  );
+  const appliedMatchIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!matchedSpecies || appliedMatchIdRef.current === matchedSpecies.id) {
+      return;
+    }
+    appliedMatchIdRef.current = matchedSpecies.id;
+    setWateringDays((prev) => (prev.trim().length > 0 ? prev : String(matchedSpecies.wateringFrequencyDays)));
+    setFertilisingDays((prev) =>
+      prev.trim().length > 0 ? prev : String(matchedSpecies.fertilisingFrequencyDays),
+    );
+    setPruningDays((prev) => (prev.trim().length > 0 ? prev : String(matchedSpecies.pruningFrequencyDays)));
+  }, [matchedSpecies]);
 
   const [photo, setPhoto] = useState<PickedPhoto | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -263,6 +337,13 @@ export default function PlantFormScreen() {
     }
     setNameError(null);
 
+    const quantityValidationError = quantityErrorFor(quantityText);
+    if (quantityValidationError) {
+      setQuantityError(quantityValidationError);
+      return;
+    }
+    setQuantityError(null);
+
     setSubmitting(true);
     try {
       // 1. Create the plant first so we have its id.
@@ -272,6 +353,7 @@ export default function PlantFormScreen() {
         displayName: displayName.trim(),
         speciesName: trimmedSpecies.length > 0 ? trimmedSpecies : undefined,
         locationLabel: trimmedLocation.length > 0 ? trimmedLocation : undefined,
+        quantity: Number.parseInt(quantityText.trim(), 10),
       });
 
       // 2 & 3. Save the cover photo (if any) then persist its path. A storage
@@ -307,10 +389,12 @@ export default function PlantFormScreen() {
   }
 
   return (
+    <JungleBackground>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Stack.Screen options={{ title: 'Add Plant' }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Add Plant" onBack={() => router.back()} />
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled">
@@ -333,6 +417,7 @@ export default function PlantFormScreen() {
               // TODO(future-phase): launch the image-recognition identifier (Req 11).
             }}
             style={({ pressed }) => [styles.identifyButton, pressed && styles.pressed]}>
+            <Icon name="camera" size={16} color={SemanticColors.primary} />
             <Text style={styles.identifyButtonText}>Identify Plant</Text>
           </Pressable>
         ) : null}
@@ -348,23 +433,56 @@ export default function PlantFormScreen() {
           returnKeyType="next"
         />
 
-        <Input
+        <Autocomplete
           label="Species (optional)"
           value={speciesName}
           onChangeText={setSpeciesName}
+          options={speciesOptions}
           placeholder="e.g. Monstera deliciosa"
           maxLength={MAX_LABEL_LENGTH}
           autoCapitalize="sentences"
         />
 
-        <Input
+        {matchedSpecies ? (
+          <View style={styles.matchHint}>
+            <Icon name="sun" size={16} color={SemanticColors.primary} />
+            <Text style={styles.matchHintText}>
+              Matched in Encyclopedia — {matchedSpecies.lightRequirement} light. Care schedule
+              below pre-filled with recommended defaults.
+            </Text>
+          </View>
+        ) : null}
+
+        <Autocomplete
           label="Location (optional)"
           value={locationLabel}
           onChangeText={setLocationLabel}
+          options={locationOptions}
           placeholder="e.g. Living room"
           maxLength={MAX_LABEL_LENGTH}
           autoCapitalize="sentences"
         />
+
+        <View>
+          <Input
+            label="How many plants?"
+            value={quantityText}
+            onChangeText={(text) => {
+              setQuantityText(text);
+              if (quantityError) setQuantityError(null);
+            }}
+            error={quantityError}
+            placeholder="1"
+            keyboardType="number-pad"
+            maxLength={3}
+          />
+          {!quantityError ? (
+            <Text style={styles.quantityHint}>
+              Bought more than one of the same plant? They&apos;ll share this one profile and care
+              schedule.
+            </Text>
+          ) : null}
+        </View>
 
         {/* Cover photo picker (Req 1.1, 1.9) */}
         <View style={styles.section}>
@@ -446,25 +564,48 @@ export default function PlantFormScreen() {
         />
       </ScrollView>
     </KeyboardAvoidingView>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: SemanticColors.surface },
+  flex: { flex: 1, backgroundColor: 'transparent' },
   content: {
     padding: Space.lg,
     gap: Space.lg,
+    paddingBottom: TabBarClearance,
   },
   section: {
     gap: Space.sm,
+    backgroundColor: SemanticColors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Space.md,
+    ...Elevation.sm,
+  },
+  matchHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Space.xs,
+    backgroundColor: SemanticColors.primaryMuted,
+    borderRadius: BorderRadius.lg,
+    padding: Space.sm,
+  },
+  matchHintText: {
+    flex: 1,
+    ...Typography.caption,
+    color: SemanticColors.primary,
+  },
+  quantityHint: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
+    marginTop: Space.xs,
   },
   sectionLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   sectionHint: {
-    fontSize: FontSize.xs,
+    ...Typography.caption,
     color: SemanticColors.textSecondary,
   },
   photoButtons: {
@@ -480,7 +621,7 @@ const styles = StyleSheet.create({
   photoPreview: {
     width: '100%',
     height: 200,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.surfaceMuted,
   },
   removeBtn: {
@@ -492,24 +633,25 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   identifyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
     alignSelf: 'flex-start',
     paddingVertical: Space.sm,
     paddingHorizontal: Space.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     backgroundColor: SemanticColors.primaryMuted,
   },
   identifyButtonText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     color: SemanticColors.primary,
   },
   removeBtnText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.caption,
     color: SemanticColors.error,
   },
   inlineError: {
-    fontSize: FontSize.xs,
+    ...Typography.label,
     color: SemanticColors.error,
   },
   submit: {

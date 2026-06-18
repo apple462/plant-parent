@@ -2,8 +2,8 @@
  * JournalService — Growth Journal entry CRUD backed by the Local_DB (SQLite via
  * Drizzle) and the File_Store (via {@link StorageService}).
  *
- * Implements the `JournalService` interface from the design: add, delete, and
- * list Journal_Entries for a plant. Capture timestamps are stored in the
+ * Implements the `JournalService` interface from the design: add, update,
+ * delete, and list Journal_Entries for a plant. Capture timestamps are stored in the
  * database as Unix-millisecond integers and mapped to JS `Date` objects at the
  * service boundary, so callers always work with the domain `JournalEntry` type.
  *
@@ -179,6 +179,31 @@ export async function addEntry(
 }
 
 /**
+ * Update a Journal_Entry's note (Update half of CRUD; the photo and capture
+ * timestamp are immutable once added — editing the note covers the
+ * meaningful "fix a typo / add context later" case without the complexity of
+ * re-validating and re-storing a new photo).
+ *
+ * Passing `note: undefined` clears the note (stored as `NULL`). Updating an
+ * unknown entry id is a no-op (the underlying `UPDATE` simply matches zero
+ * rows).
+ */
+export async function updateEntry(
+  entryId: string,
+  updates: { note?: string },
+  database: JournalDatabase = defaultDatabase(),
+): Promise<void> {
+  await runDbWrite(() =>
+    database.transaction((tx) => {
+      tx.update(journal_entries)
+        .set({ note: updates.note && updates.note.length > 0 ? updates.note : null })
+        .where(eq(journal_entries.id, entryId))
+        .run();
+    }),
+  );
+}
+
+/**
  * Delete a Journal_Entry.
  *
  * Removes the Local_DB record FIRST, then deletes the associated photo file
@@ -240,6 +265,7 @@ export async function listEntries(
  */
 export const JournalService = {
   addEntry,
+  updateEntry,
   deleteEntry,
   listEntries,
 };

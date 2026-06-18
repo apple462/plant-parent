@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { BorderRadius, FontSize, FontWeight, SemanticColors, Space } from '@/constants/theme';
+import { BorderRadius, Elevation, SemanticColors, Space, Typography } from '@/constants/theme';
 
 /**
  * Stable identifiers for the app's user-facing error copy. Using an enum keeps
@@ -85,16 +85,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.sm,
     paddingHorizontal: Space.md,
-    paddingVertical: Space.sm,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: SemanticColors.error,
+    paddingVertical: Space.md,
+    borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.errorMuted,
+    ...Elevation.sm,
   },
   message: {
     flex: 1,
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     color: SemanticColors.error,
   },
   dismiss: {

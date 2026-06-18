@@ -23,18 +23,21 @@
  *
  * Requirements: 8.1, 8.3, 8.4, 8.5, 8.6
  */
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { SymptomChecker } from '@/components/SymptomChecker';
 import { Button, Toast, type ToastVariant } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
-    FontWeight,
+    Elevation,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { db } from '@/db';
 import { symptom_notes } from '@/db/schema';
@@ -48,6 +51,7 @@ interface ToastState {
 
 export default function SymptomCheckerScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const router = useRouter();
 
   // The latest terminal diagnosis produced by the checker, or null while the
   // user is still answering questions.
@@ -93,11 +97,13 @@ export default function SymptomCheckerScreen() {
   const isInconclusive = diagnosis !== null && !diagnosis.conclusive;
 
   return (
+    <JungleBackground>
+    <View style={styles.screen}>
+    <ScreenHeader title="Symptom Checker" onBack={() => router.back()} />
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Text style={styles.heading}>Symptom Checker</Text>
       <Text style={styles.subheading}>
         Answer a few questions about what you&apos;re seeing and we&apos;ll suggest a likely
         cause and what to do about it.
@@ -147,56 +153,50 @@ export default function SymptomCheckerScreen() {
         />
       ) : null}
     </ScrollView>
+    </View>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Space.md,
     gap: Space.md,
-  },
-  heading: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: SemanticColors.textPrimary,
+    paddingBottom: TabBarClearance,
   },
   subheading: {
-    fontSize: FontSize.sm,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
   },
   resultCard: {
     gap: Space.sm,
     padding: Space.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
+    ...Elevation.sm,
   },
   resultLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   resultCause: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    ...Typography.subtitle,
     color: SemanticColors.textPrimary,
   },
   resultAction: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textPrimary,
   },
   resultTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    ...Typography.subtitle,
     color: SemanticColors.textPrimary,
   },
   resultBody: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
   },
   actions: {

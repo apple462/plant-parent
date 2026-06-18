@@ -39,7 +39,7 @@
  * Requirements: 3.1, 3.2, 3.4, 3.5, 3.6, 3.7, 3.8, 4.1, 4.2, 4.4, 4.5, 4.6,
  * 4.7, 5.1, 5.2, 5.4, 5.5, 5.6, 5.7
  */
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Linking,
@@ -50,14 +50,17 @@ import {
     View,
 } from 'react-native';
 
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ErrorBanner, Input } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
-    FontWeight,
+    Elevation,
     Palette,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
 import {
@@ -120,6 +123,7 @@ function intervalErrorFor(intervalText: string): string | null {
 
 export default function CareScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const router = useRouter();
 
   const { schedules, isLoading, error } = useCareSchedule(plantId);
   const saveSchedule = useCareStore((state) => state.saveSchedule);
@@ -257,11 +261,13 @@ export default function CareScreen() {
   );
 
   return (
+    <JungleBackground>
+    <View style={styles.screen}>
+    <ScreenHeader title="Care Schedule" onBack={() => router.back()} />
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Text style={styles.heading}>Care Schedule</Text>
       <Text style={styles.subheading}>
         Set how often to water, fertilise, and prune this plant. Reminders fire at the
         preferred time of day.
@@ -368,55 +374,49 @@ export default function CareScreen() {
         );
       })}
     </ScrollView>
+    </View>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Space.md,
     gap: Space.md,
-  },
-  heading: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
-    color: SemanticColors.textPrimary,
+    paddingBottom: TabBarClearance,
   },
   subheading: {
-    fontSize: FontSize.sm,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
   },
   permissionPrompt: {
     gap: Space.sm,
     padding: Space.md,
-    borderRadius: BorderRadius.md,
-    borderWidth: 1,
-    borderColor: SemanticColors.warning,
+    borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.warningMuted,
+    ...Elevation.sm,
   },
   permissionTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   permissionBody: {
-    fontSize: FontSize.sm,
+    ...Typography.caption,
     color: SemanticColors.textSecondary,
   },
   card: {
     gap: Space.md,
     padding: Space.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
+    ...Elevation.sm,
   },
   cardTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    ...Typography.subtitle,
     color: SemanticColors.textPrimary,
   },
   toggleRow: {
@@ -431,8 +431,7 @@ const styles = StyleSheet.create({
     gap: Space.sm,
   },
   toggleLabel: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   disabledIndicator: {
@@ -440,12 +439,9 @@ const styles = StyleSheet.create({
     paddingVertical: Space.xs,
     borderRadius: BorderRadius.full,
     backgroundColor: Palette.neutral[100],
-    borderWidth: 1,
-    borderColor: Palette.neutral[300],
   },
   disabledIndicatorText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   dateRow: {
@@ -457,13 +453,11 @@ const styles = StyleSheet.create({
     gap: Space.xs,
   },
   dateLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   dateValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   actions: {

@@ -13,9 +13,9 @@ import { Stack } from 'expo-router';
 
 export default function PlantsLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="new" options={{ title: 'Add Plant' }} />
-      <Stack.Screen name="[plantId]" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="new" />
+      <Stack.Screen name="[plantId]" />
     </Stack>
   );
 }

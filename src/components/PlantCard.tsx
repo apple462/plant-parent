@@ -32,6 +32,7 @@
  * fixed width.
  */
 import { Image } from 'expo-image';
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CareTaskBadge } from '@/components/CareTaskBadge';
@@ -45,6 +46,7 @@ import {
     Space,
     Typography,
 } from '@/constants/theme';
+import { EncyclopediaService } from '@/services/EncyclopediaService';
 import type { Plant } from '@/services/PlantService';
 import { formatDDMMYYYY } from '@/utils/dateUtils';
 
@@ -96,6 +98,13 @@ export function PlantCard({
   const status = deriveCareStatus(isOverdue, isDueToday, nextDueAt);
   const dueLabel = nextDueAt ? formatDDMMYYYY(nextDueAt) : NO_TASKS_LABEL;
 
+  // Best-effort light-requirement chip: only shown when the plant's species
+  // name exactly matches a bundled Encyclopedia entry.
+  const lightRequirement = useMemo(
+    () => (plant.speciesName ? EncyclopediaService.matchByName(plant.speciesName)?.lightRequirement : undefined),
+    [plant.speciesName],
+  );
+
   const accessibilityLabel = `${plant.displayName}. ${
     nextDueAt ? `Next care due ${dueLabel}` : NO_TASKS_LABEL
   }.`;
@@ -108,19 +117,29 @@ export function PlantCard({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
     >
-      {plant.coverPhotoPath ? (
-        <Image
-          style={styles.cover}
-          source={{ uri: plant.coverPhotoPath }}
-          contentFit="cover"
-          accessibilityIgnoresInvertColors
-          accessibilityLabel={`${plant.displayName} cover photo`}
-        />
-      ) : (
-        <View style={styles.coverPlaceholder} accessible={false}>
-          <Icon name="plant" size={48} color={SemanticColors.primary} />
-        </View>
-      )}
+      <View style={styles.coverWrap}>
+        {plant.coverPhotoPath ? (
+          <Image
+            style={styles.cover}
+            source={{ uri: plant.coverPhotoPath }}
+            contentFit="cover"
+            accessibilityIgnoresInvertColors
+            accessibilityLabel={`${plant.displayName} cover photo`}
+          />
+        ) : (
+          <View style={styles.coverPlaceholder} accessible={false}>
+            <Icon name="plant" size={36} color={SemanticColors.primary} />
+          </View>
+        )}
+        {lightRequirement ? (
+          <View
+            style={styles.lightChip}
+            accessible
+            accessibilityLabel={`Light requirement: ${lightRequirement}`}>
+            <Icon name="sun" size={13} color={SemanticColors.warning} />
+          </View>
+        ) : null}
+      </View>
 
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>
@@ -129,7 +148,7 @@ export function PlantCard({
         <View style={styles.dueRow}>
           <Icon
             name="calendar"
-            size={14}
+            size={13}
             color={SemanticColors.textSecondary}
             style={styles.dueIcon}
           />
@@ -137,7 +156,13 @@ export function PlantCard({
             {dueLabel}
           </Text>
         </View>
-        <CareTaskBadge status={status} />
+        {/* The badge only adds value for the two urgent states — for
+            "upcoming"/"none" the due-date text above already says it all, so
+            a generic "Upcoming" pill on nearly every card would just be
+            visual noise repeating the same date in different words. */}
+        {status === 'overdue' || status === 'due-today' ? (
+          <CareTaskBadge status={status} />
+        ) : null}
       </View>
     </Pressable>
   );
@@ -152,24 +177,38 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     ...Elevation.md,
   },
+  coverWrap: {
+    width: '100%',
+  },
   cover: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 4 / 3,
     backgroundColor: SemanticColors.surfaceMuted,
   },
   coverPlaceholder: {
     width: '100%',
-    aspectRatio: 1,
+    aspectRatio: 4 / 3,
     backgroundColor: Palette.green[50],
     alignItems: 'center',
     justifyContent: 'center',
   },
+  lightChip: {
+    position: 'absolute',
+    top: Space.xs,
+    right: Space.xs,
+    width: 24,
+    height: 24,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
   body: {
-    padding: Space.md,
-    gap: Space.sm,
+    padding: Space.sm,
+    gap: Space.xs,
   },
   name: {
-    ...Typography.subtitle,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   dueRow: {

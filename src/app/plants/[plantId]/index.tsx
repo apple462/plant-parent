@@ -55,6 +55,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import {
     Image,
+    Modal,
     Pressable,
     ScrollView,
     StyleSheet,
@@ -64,6 +65,8 @@ import {
 } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import {
     Button,
     ConfirmationDialog,
@@ -75,16 +78,18 @@ import {
 import {
     BorderRadius,
     Elevation,
-    FontSize,
-    FontWeight,
+    MaxContentWidth,
     Palette,
     SemanticColors,
-    Space
+    Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
 import { usePlants } from '@/hooks/usePlants';
 import { type CareType } from '@/services/CareService';
-import { PlantService, type UpdatePlantInput } from '@/services/PlantService';
+import { EncyclopediaService } from '@/services/EncyclopediaService';
+import { MAX_QUANTITY, MIN_QUANTITY, PlantService, type UpdatePlantInput } from '@/services/PlantService';
 import { storageService } from '@/services/StorageService';
 import { useCareStore } from '@/stores/careStore';
 import { formatDDMMYYYY } from '@/utils/dateUtils';
@@ -111,11 +116,24 @@ type PhotoEdit =
 
 const MAX_LABEL_LENGTH = 100;
 
-/** Display order, labels, and matching icon for the three care sections. */
-const CARE_SECTIONS: { type: CareType; title: string; icon: IconName }[] = [
-  { type: 'watering', title: 'Watering', icon: 'water' },
-  { type: 'fertilising', title: 'Fertilising', icon: 'fertilise' },
-  { type: 'pruning', title: 'Pruning', icon: 'prune' },
+/** A single icon + label + value row inside the identity card. */
+function IdentityField({ icon, label, value }: { icon: IconName; label: string; value: string }) {
+  return (
+    <View style={styles.fieldRow}>
+      <View style={styles.fieldLabelGroup}>
+        <Icon name={icon} size={16} color={SemanticColors.textSecondary} />
+        <Text style={styles.fieldLabel}>{label}</Text>
+      </View>
+      <Text style={styles.fieldValue} numberOfLines={1}>{value}</Text>
+    </View>
+  );
+}
+
+/** Display order, labels, icon, and chip tint for the three care sections. */
+const CARE_SECTIONS: { type: CareType; title: string; icon: IconName; tint: string; tintMuted: string }[] = [
+  { type: 'watering', title: 'Watering', icon: 'water', tint: SemanticColors.info, tintMuted: SemanticColors.infoMuted },
+  { type: 'fertilising', title: 'Fertilising', icon: 'fertilise', tint: SemanticColors.warning, tintMuted: SemanticColors.warningMuted },
+  { type: 'pruning', title: 'Pruning', icon: 'prune', tint: SemanticColors.primary, tintMuted: SemanticColors.primaryMuted },
 ];
 
 /** Map a filename extension to a cover-photo MIME type (jpeg/png only). */
@@ -152,6 +170,14 @@ export default function PlantProfileScreen() {
   );
   const { schedules } = useCareSchedule(plantId);
 
+  // Best-effort light-requirement lookup: only shown when the plant's species
+  // name exactly matches a bundled Encyclopedia entry (Req: show sunlight
+  // detail inside the plant detail page).
+  const lightRequirement = useMemo(
+    () => (plant?.speciesName ? EncyclopediaService.matchByName(plant.speciesName)?.lightRequirement : undefined),
+    [plant],
+  );
+
   // Master reminders toggle — flips reminders for every schedule of the plant.
   const toggleReminder = useCareStore((s) => s.toggleReminder);
 
@@ -181,38 +207,55 @@ export default function PlantProfileScreen() {
   const [editName, setEditName] = useState('');
   const [editSpecies, setEditSpecies] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editQuantityText, setEditQuantityText] = useState('1');
   const [photoEdit, setPhotoEdit] = useState<PhotoEdit>({ kind: 'unchanged' });
   const [nameError, setNameError] = useState<string | null>(null);
+  const [quantityError, setQuantityError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Deletion state.
+  // Deletion state — a single ("quantity 1") plant goes straight to the
+  // simple confirm dialog below; a plant record representing multiple
+  // physical plants (`quantity > 1`) instead opens `removeQuantityModal`,
+  // which asks how many of them to remove.
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removeQuantityModalVisible, setRemoveQuantityModalVisible] = useState(false);
+  const [removeQuantityText, setRemoveQuantityText] = useState('1');
+  const [removeQuantityError, setRemoveQuantityError] = useState<string | null>(null);
+  const [removingQuantity, setRemovingQuantity] = useState(false);
 
   const [toast, setToast] = useState<string | null>(null);
 
   // --- Loading / not-found -------------------------------------------------
   if (isLoading) {
     return (
-      <View style={styles.flex}>
-        <Stack.Screen options={{ title: 'Plant' }} />
-        <LoadingSpinner label="Loading plant…" />
-      </View>
+      <JungleBackground>
+        <View style={styles.flex}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <ScreenHeader title="Plant" onBack={() => router.back()} />
+          <LoadingSpinner label="Loading plant…" />
+        </View>
+      </JungleBackground>
     );
   }
 
   if (!plant) {
     return (
-      <View style={styles.centered}>
-        <Stack.Screen options={{ title: 'Plant' }} />
-        <Text style={styles.notFoundTitle}>Plant not found</Text>
-        <Text style={styles.notFoundBody}>
-          This plant may have been deleted.
-        </Text>
-        <Button label="Back to Virtual Jungle" onPress={() => router.replace('/')} />
-      </View>
+      <JungleBackground>
+        <View style={styles.flex}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <ScreenHeader title="Plant" onBack={() => router.back()} />
+          <View style={styles.centered}>
+            <Text style={styles.notFoundTitle}>Plant not found</Text>
+            <Text style={styles.notFoundBody}>
+              This plant may have been deleted.
+            </Text>
+            <Button label="Back to Virtual Jungle" onPress={() => router.replace('/')} />
+          </View>
+        </View>
+      </JungleBackground>
     );
   }
 
@@ -224,8 +267,10 @@ export default function PlantProfileScreen() {
     setEditName(plant.displayName);
     setEditSpecies(plant.speciesName ?? '');
     setEditLocation(plant.locationLabel ?? '');
+    setEditQuantityText(String(plant.quantity));
     setPhotoEdit({ kind: 'unchanged' });
     setNameError(null);
+    setQuantityError(null);
     setPhotoError(null);
     setFormError(null);
     setEditing(true);
@@ -234,6 +279,7 @@ export default function PlantProfileScreen() {
   function cancelEdit() {
     setEditing(false);
     setNameError(null);
+    setQuantityError(null);
     setPhotoError(null);
     setFormError(null);
   }
@@ -322,6 +368,18 @@ export default function PlantProfileScreen() {
     }
     setNameError(null);
 
+    const trimmedQuantity = editQuantityText.trim();
+    const quantityValue = Number.parseInt(trimmedQuantity, 10);
+    if (
+      !/^\d+$/.test(trimmedQuantity) ||
+      quantityValue < MIN_QUANTITY ||
+      quantityValue > MAX_QUANTITY
+    ) {
+      setQuantityError(`Enter a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}.`);
+      return;
+    }
+    setQuantityError(null);
+
     setSaving(true);
     try {
       const trimmedName = editName.trim();
@@ -332,6 +390,7 @@ export default function PlantProfileScreen() {
         displayName: trimmedName,
         speciesName: trimmedSpecies.length > 0 ? trimmedSpecies : null,
         locationLabel: trimmedLocation.length > 0 ? trimmedLocation : null,
+        quantity: quantityValue,
       };
 
       // Resolve the cover-photo change.
@@ -369,7 +428,25 @@ export default function PlantProfileScreen() {
     }
   }
 
-  // --- Deletion ------------------------------------------------------------
+  // --- Removal ---------------------------------------------------------------
+  // A `quantity: 1` record removes in one step (the simple confirm dialog
+  // below). A record representing multiple physical plants instead opens
+  // `removeQuantityModal`, which asks how many of them to remove — removing
+  // fewer than the total just lowers `quantity` (the shared care schedule is
+  // untouched); removing all of them is a full `deletePlant`.
+  function handleRemovePress() {
+    if (!plant) {
+      return;
+    }
+    if (plant.quantity > 1) {
+      setRemoveQuantityText('1');
+      setRemoveQuantityError(null);
+      setRemoveQuantityModalVisible(true);
+    } else {
+      setConfirmingDelete(true);
+    }
+  }
+
   async function handleConfirmDelete() {
     if (!plant) {
       return;
@@ -387,7 +464,64 @@ export default function PlantProfileScreen() {
     }
   }
 
+  function handleCloseRemoveQuantityModal() {
+    if (!removingQuantity) {
+      setRemoveQuantityModalVisible(false);
+    }
+  }
+
+  async function handleConfirmRemoveQuantity() {
+    if (!plant) {
+      return;
+    }
+    const trimmed = removeQuantityText.trim();
+    if (!/^\d+$/.test(trimmed)) {
+      setRemoveQuantityError('Enter a whole number.');
+      return;
+    }
+    const count = Number.parseInt(trimmed, 10);
+    if (count < 1 || count > plant.quantity) {
+      setRemoveQuantityError(`Enter a number from 1 to ${plant.quantity}.`);
+      return;
+    }
+    setRemoveQuantityError(null);
+    setRemovingQuantity(true);
+    try {
+      const updated = await PlantService.removeQuantity(plant.id, count);
+      setRemoveQuantityModalVisible(false);
+      if (updated === null) {
+        // Removed the last of them — same outcome as a full delete.
+        router.replace('/');
+        return;
+      }
+      setToast(`Removed ${count} plant${count === 1 ? '' : 's'}. ${updated.quantity} left.`);
+    } catch (error) {
+      console.warn('PlantProfileScreen: failed to remove quantity', error);
+      setRemoveQuantityError('Unable to remove. Please try again.');
+    } finally {
+      setRemovingQuantity(false);
+    }
+  }
+
   const previewUri = editPreviewUri();
+
+  // Growth Journal lives in the header as a camera-with-plus icon — "add a
+  // photo" reads more clearly than a bare camera glyph, and it's a better CTA
+  // than a third stacked button below. Hidden while editing, since the header
+  // is back-button-only there.
+  const journalHeaderAction = editing ? undefined : (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Add a Growth Journal photo"
+      hitSlop={Space.sm}
+      onPress={() => router.push(`/plants/${plant.id}/journal`)}
+      style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}>
+      <Icon name="camera" size={22} color={SemanticColors.primary} />
+      <View style={styles.headerIconBadge}>
+        <Icon name="plus" size={10} color={SemanticColors.onPrimary} />
+      </View>
+    </Pressable>
+  );
 
   // --- Master reminders toggle --------------------------------------------
   /**
@@ -412,12 +546,14 @@ export default function PlantProfileScreen() {
   }
 
   return (
+    <JungleBackground>
+    <View style={styles.flex}>
+    <Stack.Screen options={{ headerShown: false }} />
+    <ScreenHeader title={plant.displayName} onBack={() => router.back()} right={journalHeaderAction} />
     <ScrollView
       style={styles.flex}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: plant.displayName }} />
-
       {formError ? (
         <ErrorBanner message={formError} onDismiss={() => setFormError(null)} />
       ) : null}
@@ -506,6 +642,18 @@ export default function PlantProfileScreen() {
             maxLength={MAX_LABEL_LENGTH}
             autoCapitalize="sentences"
           />
+          <Input
+            label="How many plants?"
+            value={editQuantityText}
+            onChangeText={(text) => {
+              setEditQuantityText(text);
+              if (quantityError) setQuantityError(null);
+            }}
+            error={quantityError}
+            placeholder="1"
+            keyboardType="number-pad"
+            maxLength={3}
+          />
           <View style={styles.editActions}>
             <Button
               label="Cancel"
@@ -527,22 +675,30 @@ export default function PlantProfileScreen() {
         </View>
       ) : (
         <View style={styles.section}>
-          <Text style={styles.plantName}>{plant.displayName}</Text>
-
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Species</Text>
-            <Text style={styles.fieldValue}>{plant.speciesName ?? ''}</Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Location</Text>
-            <Text style={styles.fieldValue}>{plant.locationLabel ?? ''}</Text>
-          </View>
-          <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Added</Text>
-            <Text style={styles.fieldValue}>{formatDDMMYYYY(plant.createdAt)}</Text>
+          <View style={styles.identityHeaderRow}>
+            <Text style={styles.sectionLabel}>Details</Text>
+            <Button label="Edit" variant="secondary" icon="edit" onPress={beginEdit} style={styles.editButton} />
           </View>
 
-          <Button label="Edit" variant="secondary" onPress={beginEdit} style={styles.editButton} />
+          <View style={[styles.identityCard, Elevation.sm]}>
+            <IdentityField icon="leaf" label="Species" value={plant.speciesName ?? '—'} />
+            {plant.quantity > 1 ? (
+              <>
+                <View style={styles.fieldDivider} />
+                <IdentityField icon="plant" label="Quantity" value={`${plant.quantity} plants`} />
+              </>
+            ) : null}
+            <View style={styles.fieldDivider} />
+            <IdentityField icon="location" label="Location" value={plant.locationLabel ?? '—'} />
+            {lightRequirement ? (
+              <>
+                <View style={styles.fieldDivider} />
+                <IdentityField icon="sun" label="Light" value={lightRequirement} />
+              </>
+            ) : null}
+            <View style={styles.fieldDivider} />
+            <IdentityField icon="calendar" label="Added" value={formatDDMMYYYY(plant.createdAt)} />
+          </View>
         </View>
       )}
 
@@ -587,7 +743,7 @@ export default function PlantProfileScreen() {
             />
           </View>
 
-          {CARE_SECTIONS.map(({ type, title, icon }) => {
+          {CARE_SECTIONS.map(({ type, title, icon, tint, tintMuted }) => {
             const status = byType[type];
             const lastLabel = status?.lastCompletedAt
               ? formatDDMMYYYY(status.lastCompletedAt)
@@ -600,7 +756,9 @@ export default function PlantProfileScreen() {
               <View key={type} style={[styles.careCard, Elevation.sm]}>
                 <View style={styles.careHeaderRow}>
                   <View style={styles.careTitleGroup}>
-                    <Icon name={icon} size={20} color={SemanticColors.primary} />
+                    <View style={[styles.careIconChip, { backgroundColor: tintMuted }]}>
+                      <Icon name={icon} size={18} color={tint} />
+                    </View>
                     <Text style={styles.careTitle}>{title}</Text>
                   </View>
                   {reminderOff ? (
@@ -625,43 +783,43 @@ export default function PlantProfileScreen() {
         </View>
       ) : null}
 
-      {/* Navigation entry points (Req 8.1 for the Symptom Checker) */}
+      {/* Navigation entry points. Growth Journal lives in the header (camera
+          icon, Req 8.1 spirit — reachable from every plant profile). */}
       {!editing ? (
-        <View style={styles.section}>
+        <View style={[styles.section, styles.ctaRow]}>
           <Button
             label="Care Schedule"
             variant="secondary"
+            icon="calendar"
             onPress={() => router.push(`/plants/${plant.id}/care`)}
+            style={styles.ctaButton}
           />
           <Button
-            label="Growth Journal"
+            label="Diagnose"
             variant="secondary"
-            onPress={() => router.push(`/plants/${plant.id}/journal`)}
-          />
-          <Button
-            label="Symptom Checker"
-            variant="secondary"
+            icon="wilting"
             onPress={() => router.push(`/plants/${plant.id}/symptom-checker`)}
+            style={styles.ctaButton}
           />
         </View>
       ) : null}
 
-      {/* Deletion (Req 1.6 / 1.7) */}
+      {/* Removal (Req 1.6 / 1.7) */}
       {!editing ? (
         <View style={styles.section}>
           <Button
-            label="Delete plant"
+            label="Remove plant"
             variant="destructive"
-            onPress={() => setConfirmingDelete(true)}
+            onPress={handleRemovePress}
           />
         </View>
       ) : null}
 
       <ConfirmationDialog
         visible={confirmingDelete}
-        title="Delete plant"
-        message={`Delete "${plant.displayName}"? This removes its care schedules, journal entries, and reminders. This cannot be undone.`}
-        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+        title="Remove plant"
+        message={`Remove "${plant.displayName}"? This removes its care schedule, journal entries, and reminders. This cannot be undone.`}
+        confirmLabel={deleting ? 'Removing…' : 'Remove'}
         confirmVariant="destructive"
         onConfirm={() => {
           void handleConfirmDelete();
@@ -673,81 +831,181 @@ export default function PlantProfileScreen() {
         }}
       />
 
+      <RemoveQuantityModal
+        visible={removeQuantityModalVisible}
+        plantName={plant.displayName}
+        totalQuantity={plant.quantity}
+        countText={removeQuantityText}
+        onChangeCountText={(text) => {
+          setRemoveQuantityText(text);
+          if (removeQuantityError) setRemoveQuantityError(null);
+        }}
+        error={removeQuantityError}
+        removing={removingQuantity}
+        onConfirm={() => {
+          void handleConfirmRemoveQuantity();
+        }}
+        onCancel={handleCloseRemoveQuantityModal}
+      />
+
       {toast ? (
         <Toast message={toast} variant="success" onDismiss={() => setToast(null)} style={styles.toast} />
       ) : null}
     </ScrollView>
+    </View>
+    </JungleBackground>
+  );
+}
+
+/**
+ * Asks how many of a multi-quantity plant record to remove. Shown instead of
+ * the plain {@link ConfirmationDialog} when `plant.quantity > 1` — removing
+ * fewer than the total just lowers the stored quantity (the shared care
+ * schedule is untouched); removing all of them is a full delete.
+ */
+function RemoveQuantityModal({
+  visible,
+  plantName,
+  totalQuantity,
+  countText,
+  onChangeCountText,
+  error,
+  removing,
+  onConfirm,
+  onCancel,
+}: {
+  visible: boolean;
+  plantName: string;
+  totalQuantity: number;
+  countText: string;
+  onChangeCountText: (text: string) => void;
+  error: string | null;
+  removing: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+      <Pressable accessibilityLabel="Dismiss" style={styles.modalBackdrop} onPress={onCancel}>
+        <Pressable
+          accessibilityRole="alert"
+          accessibilityViewIsModal
+          style={styles.modalCard}
+          onPress={() => {
+            // Swallow presses so tapping the card does not dismiss the modal.
+          }}>
+          <Text style={styles.modalTitle}>Remove plant</Text>
+          <Text style={styles.modalMessage}>
+            You have {totalQuantity} {plantName} plants on one profile. How many would you like
+            to remove?
+          </Text>
+          <Input
+            label={`How many (1–${totalQuantity})?`}
+            value={countText}
+            onChangeText={onChangeCountText}
+            error={error}
+            placeholder="1"
+            keyboardType="number-pad"
+            maxLength={3}
+          />
+          <View style={styles.editActions}>
+            <Button label="Cancel" variant="secondary" onPress={onCancel} disabled={removing} style={styles.editAction} />
+            <Button
+              label={removing ? 'Removing…' : 'Remove'}
+              variant="destructive"
+              onPress={onConfirm}
+              loading={removing}
+              disabled={removing}
+              style={styles.editAction}
+            />
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: SemanticColors.surfaceMuted },
-  content: { padding: Space.md, gap: Space.lg },
+  flex: { flex: 1, backgroundColor: 'transparent' },
+  content: { padding: Space.md, gap: Space.lg, paddingBottom: TabBarClearance },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Space.md,
     padding: Space.lg,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   notFoundTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
+    ...Typography.heading,
     color: SemanticColors.textPrimary,
   },
   notFoundBody: {
-    fontSize: FontSize.sm,
+    ...Typography.caption,
     color: SemanticColors.textSecondary,
     textAlign: 'center',
   },
   section: { gap: Space.sm },
   sectionLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   coverPhoto: {
     width: '100%',
-    height: 220,
-    borderRadius: BorderRadius.lg,
+    height: 240,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surfaceMuted,
+    ...Elevation.md,
   },
   coverPlaceholder: {
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
-    backgroundColor: Palette.neutral[100],
+    backgroundColor: Palette.green[50],
   },
   coverPlaceholderText: {
-    fontSize: FontSize.sm,
+    ...Typography.caption,
     color: SemanticColors.textSecondary,
   },
-  plantName: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
-    color: SemanticColors.textPrimary,
+  identityHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Space.sm,
+  },
+  identityCard: {
+    backgroundColor: SemanticColors.surface,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Space.md,
   },
   fieldRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: Space.md,
-    paddingVertical: Space.xs,
+    paddingVertical: Space.sm,
+  },
+  fieldLabelGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+  },
+  fieldDivider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: SemanticColors.border,
   },
   fieldLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   fieldValue: {
     flex: 1,
     textAlign: 'right',
-    fontSize: FontSize.md,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   editButton: {
-    marginTop: Space.sm,
+    minHeight: 40,
+    paddingHorizontal: Space.md,
   },
   editActions: {
     flexDirection: 'row',
@@ -773,20 +1031,17 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   removeBtnText: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.caption,
     color: SemanticColors.error,
   },
   inlineError: {
-    fontSize: FontSize.xs,
+    ...Typography.label,
     color: SemanticColors.error,
   },
   careCard: {
     gap: Space.sm,
     padding: Space.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
   },
   reminderCard: {
@@ -795,9 +1050,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: Space.md,
     padding: Space.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
   },
   reminderLabelGroup: {
@@ -811,12 +1064,11 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   reminderTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   reminderHint: {
-    fontSize: FontSize.xs,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   careHeaderRow: {
@@ -829,9 +1081,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Space.sm,
   },
+  careIconChip: {
+    width: 32,
+    height: 32,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   careTitle: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   disabledIndicator: {
@@ -839,12 +1097,9 @@ const styles = StyleSheet.create({
     paddingVertical: Space.xs,
     borderRadius: BorderRadius.full,
     backgroundColor: Palette.neutral[100],
-    borderWidth: 1,
-    borderColor: Palette.neutral[300],
   },
   disabledIndicatorText: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   dateRow: {
@@ -856,16 +1111,67 @@ const styles = StyleSheet.create({
     gap: Space.xs,
   },
   dateLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   dateValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   toast: {
     marginTop: Space.sm,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.full,
+  },
+  headerIconBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 2,
+    width: 14,
+    height: 14,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: SemanticColors.primary,
+    borderWidth: 1.5,
+    borderColor: SemanticColors.surface,
+  },
+  headerIconButtonPressed: {
+    backgroundColor: SemanticColors.surfaceMuted,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+  },
+  ctaButton: {
+    flex: 1,
+  },
+  modalBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Space.lg,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    gap: Space.md,
+    padding: Space.lg,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: SemanticColors.surface,
+    ...Elevation.lg,
+  },
+  modalTitle: {
+    ...Typography.subtitle,
+    color: SemanticColors.textPrimary,
+  },
+  modalMessage: {
+    ...Typography.body,
+    color: SemanticColors.textSecondary,
   },
 });

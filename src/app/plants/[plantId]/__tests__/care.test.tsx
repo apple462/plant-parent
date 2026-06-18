@@ -24,8 +24,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 // transformer can't parse. Stub it out — no runtime behaviour here.
 jest.mock('@/global.css', () => ({}), { virtual: true });
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ plantId: 'p1' }),
+  useRouter: () => ({ back: jest.fn() }),
 }));
 
 // Mutable holder so a test can swap the live-hook return between renders (used

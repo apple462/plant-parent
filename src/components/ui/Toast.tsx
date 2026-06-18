@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { BorderRadius, FontSize, FontWeight, Palette, SemanticColors, Space } from '@/constants/theme';
+import { BorderRadius, Elevation, Palette, SemanticColors, Space, Typography } from '@/constants/theme';
 
 /** Toast tone. */
 export type ToastVariant = 'success' | 'error';
@@ -57,13 +57,13 @@ export function Toast({ message, variant = 'success', duration = 3000, onDismiss
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Space.md,
-    paddingVertical: Space.sm,
-    borderRadius: BorderRadius.md,
+    paddingHorizontal: Space.lg,
+    paddingVertical: Space.md,
+    borderRadius: BorderRadius.full,
+    ...Elevation.lg,
   },
   message: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.bodyBold,
     textAlign: 'center',
   },
 });

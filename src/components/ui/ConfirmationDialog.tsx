@@ -1,7 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Button, type ButtonVariant } from '@/components/ui/Button';
-import { BorderRadius, FontSize, FontWeight, MaxContentWidth, SemanticColors, Space } from '@/constants/theme';
+import { BorderRadius, Elevation, MaxContentWidth, SemanticColors, Space, Typography } from '@/constants/theme';
 
 export interface ConfirmationDialogProps {
   /** Controls dialog visibility. */
@@ -71,16 +71,16 @@ const styles = StyleSheet.create({
     maxWidth: MaxContentWidth,
     gap: Space.md,
     padding: Space.lg,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
+    ...Elevation.lg,
   },
   title: {
-    fontSize: FontSize.lg,
-    fontWeight: FontWeight.semibold,
+    ...Typography.subtitle,
     color: SemanticColors.textPrimary,
   },
   message: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
   },
   actions: {

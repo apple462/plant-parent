@@ -33,15 +33,18 @@ jest.mock('../../db', () => {
   const path = require('path');
   const schema = require('../../db/schema');
   const sqlite = new Database(':memory:');
-  const sql = fs.readFileSync(
-    path.resolve(__dirname, '../../db/migrations/0000_glossy_midnight.sql'),
-    'utf8',
+  const migrationsDir = path.resolve(__dirname, '../../db/migrations');
+  const journal = JSON.parse(
+    fs.readFileSync(path.join(migrationsDir, 'meta/_journal.json'), 'utf8'),
   );
-  for (const s of sql
-    .split('--> statement-breakpoint')
-    .map((x: string) => x.trim())
-    .filter(Boolean)) {
-    sqlite.exec(s);
+  for (const entry of journal.entries) {
+    const sql = fs.readFileSync(path.join(migrationsDir, `${entry.tag}.sql`), 'utf8');
+    for (const s of sql
+      .split('--> statement-breakpoint')
+      .map((x: string) => x.trim())
+      .filter(Boolean)) {
+      sqlite.exec(s);
+    }
   }
   return { db: drizzle(sqlite, { schema }), expoDb: sqlite, DATABASE_NAME: 'test.db' };
 });

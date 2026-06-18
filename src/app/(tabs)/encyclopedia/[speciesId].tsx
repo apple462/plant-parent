@@ -27,27 +27,48 @@
  *
  * Requirements: 7.4, 7.5, 7.6
  */
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Icon, type IconName } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ConfirmationDialog, Toast } from '@/components/ui';
 import {
     BorderRadius,
-    FontSize,
-    FontWeight,
+    Elevation,
+    JungleGradientCard,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { CareService, type CareType } from '@/services/CareService';
 import { EncyclopediaService } from '@/services/EncyclopediaService';
 
-/** A single labelled care guide field row. */
-function DetailRow({ label, value }: { label: string; value: string }) {
+/** A single care-guide stat tile in the 2×2 grid (icon + big value + label). */
+function StatTile({
+  icon,
+  tint,
+  tintMuted,
+  value,
+  label,
+}: {
+  icon: IconName;
+  tint: string;
+  tintMuted: string;
+  value: string;
+  label: string;
+}) {
   return (
-    <View style={styles.detailRow}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
+    <View style={styles.statTile}>
+      <View style={[styles.statIconChip, { backgroundColor: tintMuted }]}>
+        <Icon name={icon} size={20} color={tint} />
+      </View>
+      <Text style={styles.statValue} numberOfLines={1}>{value}</Text>
+      <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
 }
@@ -69,17 +90,22 @@ export default function SpeciesDetailScreen() {
   // Not-found case (Req 7.4 graceful handling): the species id did not resolve.
   if (!species) {
     return (
-      <View style={styles.notFound}>
-        <Stack.Screen options={{ title: 'Species' }} />
-        <Text style={styles.notFoundTitle}>Species not found</Text>
-        <Text style={styles.notFoundBody}>
-          We couldn&apos;t find a care guide for this species. It may have been removed from the
-          encyclopedia.
-        </Text>
-        <View style={styles.cta}>
-          <Button label="Back to Encyclopedia" variant="secondary" onPress={() => router.back()} />
+      <JungleBackground>
+        <View style={styles.flex}>
+          <Stack.Screen options={{ headerShown: false }} />
+          <ScreenHeader title="Species" onBack={() => router.back()} />
+          <View style={styles.notFound}>
+            <Text style={styles.notFoundTitle}>Species not found</Text>
+            <Text style={styles.notFoundBody}>
+              We couldn&apos;t find a care guide for this species. It may have been removed from the
+              encyclopedia.
+            </Text>
+            <View style={styles.cta}>
+              <Button label="Back to Encyclopedia" variant="secondary" onPress={() => router.back()} />
+            </View>
+          </View>
         </View>
-      </View>
+      </JungleBackground>
     );
   }
 
@@ -125,27 +151,59 @@ export default function SpeciesDetailScreen() {
   }
 
   return (
+    <JungleBackground>
+    <View style={styles.flex}>
+    <Stack.Screen options={{ headerShown: false }} />
+    <ScreenHeader onBack={() => router.back()} />
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled">
-      <Stack.Screen options={{ title: species.commonName }} />
-
-      {/* Header: common + scientific name (Req 7.4). */}
-      <View style={styles.header}>
+      {/* Hero: icon badge + common/scientific name (Req 7.4). */}
+      <View style={styles.hero}>
+        <View style={styles.iconBadge}>
+          <LinearGradient
+            colors={JungleGradientCard}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Icon name="leaf" size={48} color={SemanticColors.onPrimary} />
+        </View>
         <Text style={styles.commonName}>{species.commonName}</Text>
         <Text style={styles.scientificName}>{species.scientificName}</Text>
       </View>
 
-      {/* Care guide fields (Req 7.4). */}
-      <View style={styles.card}>
-        <DetailRow label="Watering frequency" value={`Every ${species.wateringFrequencyDays} days`} />
-        <DetailRow
-          label="Fertilising frequency"
-          value={`Every ${species.fertilisingFrequencyDays} days`}
+      {/* Care guide fields, as a 2x2 stat grid (Req 7.4). */}
+      <View style={styles.statGrid}>
+        <StatTile
+          icon="water"
+          tint={SemanticColors.info}
+          tintMuted={SemanticColors.infoMuted}
+          value={`${species.wateringFrequencyDays}d`}
+          label="Watering"
         />
-        <DetailRow label="Pruning frequency" value={`Every ${species.pruningFrequencyDays} days`} />
-        <DetailRow label="Light requirement" value={species.lightRequirement} />
+        <StatTile
+          icon="fertilise"
+          tint={SemanticColors.warning}
+          tintMuted={SemanticColors.warningMuted}
+          value={`${species.fertilisingFrequencyDays}d`}
+          label="Fertilising"
+        />
+        <StatTile
+          icon="prune"
+          tint={SemanticColors.primary}
+          tintMuted={SemanticColors.primaryMuted}
+          value={`${species.pruningFrequencyDays}d`}
+          label="Pruning"
+        />
+        <StatTile
+          icon="sun"
+          tint={SemanticColors.warning}
+          tintMuted={SemanticColors.warningMuted}
+          value={species.lightRequirement}
+          label="Light"
+        />
       </View>
 
       {/* Care summary (Req 7.4). */}
@@ -188,64 +246,93 @@ export default function SpeciesDetailScreen() {
         onCancel={() => setConfirmVisible(false)}
       />
     </ScrollView>
+    </View>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1,
+  },
   screen: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Space.md,
     gap: Space.md,
+    paddingBottom: TabBarClearance,
   },
-  header: {
+  hero: {
+    alignItems: 'center',
     gap: Space.xs,
+    paddingVertical: Space.sm,
+  },
+  iconBadge: {
+    width: 88,
+    height: 88,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Space.xs,
+    ...Elevation.md,
   },
   commonName: {
-    fontSize: FontSize.xxl,
-    fontWeight: FontWeight.bold,
+    ...Typography.title,
     color: SemanticColors.textPrimary,
+    textAlign: 'center',
   },
   scientificName: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     fontStyle: 'italic',
+    color: SemanticColors.textSecondary,
+    textAlign: 'center',
+  },
+  statGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Space.sm,
+  },
+  statTile: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    alignItems: 'center',
+    gap: Space.xs,
+    padding: Space.md,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: SemanticColors.surface,
+    ...Elevation.sm,
+  },
+  statIconChip: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    ...Typography.subtitle,
+    color: SemanticColors.textPrimary,
+  },
+  statLabel: {
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   card: {
     gap: Space.md,
     padding: Space.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     backgroundColor: SemanticColors.surface,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Space.md,
-  },
-  detailLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
-    color: SemanticColors.textSecondary,
-  },
-  detailValue: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
-    color: SemanticColors.textPrimary,
-    flexShrink: 1,
-    textAlign: 'right',
+    ...Elevation.sm,
   },
   summaryLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   summaryText: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textPrimary,
     lineHeight: 24,
   },
@@ -259,15 +346,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: Space.lg,
     gap: Space.sm,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   notFoundTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: FontWeight.bold,
+    ...Typography.heading,
     color: SemanticColors.textPrimary,
   },
   notFoundBody: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
     textAlign: 'center',
   },

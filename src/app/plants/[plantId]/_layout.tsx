@@ -19,13 +19,13 @@ import { Stack } from 'expo-router';
 
 export default function PlantDetailLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="index" options={{ title: 'Plant' }} />
-      <Stack.Screen name="care" options={{ title: 'Care Schedule' }} />
-      <Stack.Screen name="symptom-checker" options={{ title: 'Symptom Checker' }} />
-      <Stack.Screen name="journal/index" options={{ title: 'Growth Journal' }} />
-      <Stack.Screen name="journal/new" options={{ title: 'Add Journal Entry' }} />
-      <Stack.Screen name="journal/compare" options={{ title: 'Compare' }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="care" />
+      <Stack.Screen name="symptom-checker" />
+      <Stack.Screen name="journal/index" />
+      <Stack.Screen name="journal/new" />
+      <Stack.Screen name="journal/compare" />
     </Stack>
   );
 }

@@ -72,6 +72,27 @@ export const EncyclopediaService = {
   },
 
   /**
+   * Returns the species entry whose `commonName` or `scientificName` exactly
+   * matches `name` (case-insensitive, trimmed), or null if none matches.
+   * Used to auto-suggest care defaults when a User types a species name that
+   * happens to be in the bundled Encyclopedia (as opposed to `search`, which
+   * does a broader substring match for browsing/filtering).
+   */
+  matchByName(name: string): SpeciesEntry | null {
+    const needle = name.trim().toLowerCase();
+    if (needle.length === 0) {
+      return null;
+    }
+    return (
+      ENTRIES.find(
+        (entry) =>
+          entry.commonName.toLowerCase() === needle ||
+          entry.scientificName.toLowerCase() === needle,
+      ) ?? null
+    );
+  },
+
+  /**
    * Returns the full bundled species collection.
    */
   listAll(): SpeciesEntry[] {

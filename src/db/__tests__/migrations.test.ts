@@ -2,27 +2,31 @@
 //
 // Validates: Requirements 9.1
 //
-// This test proves that the Drizzle-generated migration SQL applies cleanly to
-// a fresh SQLite database and that all five domain tables exist afterward.
+// This test proves that every Drizzle-generated migration applies cleanly, in
+// order, to a fresh SQLite database and that all five domain tables exist
+// afterward.
 //
 // Approach: the app DB client (src/db/index.ts) relies on expo-sqlite's native
 // module, which is unavailable in the Jest (node) environment. Instead of
-// loading the native client, this test executes the *actual generated migration
-// SQL* (src/db/migrations/0000_glossy_midnight.sql) against an in-memory
-// better-sqlite3 database. This exercises the real CREATE TABLE statements that
-// ship in the app binary while staying free of native expo-sqlite dependencies.
+// loading the native client, this test executes the *actual generated
+// migration SQL files* (src/db/migrations/*.sql, in the order recorded by
+// `meta/_journal.json`) against an in-memory better-sqlite3 database. This
+// exercises the real CREATE TABLE / ALTER TABLE statements that ship in the
+// app binary while staying free of native expo-sqlite dependencies.
 
 import fs from 'fs';
 import path from 'path';
 
 import Database from 'better-sqlite3';
 
-const MIGRATION_FILE = path.resolve(
-  __dirname,
-  '../migrations/0000_glossy_midnight.sql'
-);
+const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
 
-/** The five tables the schema (and migration) must create. */
+/** Drizzle's per-migration journal, in the same shape it writes to `meta/_journal.json`. */
+interface MigrationJournal {
+  entries: { idx: number; tag: string }[];
+}
+
+/** The five tables the schema (and migrations) must create. */
 const EXPECTED_TABLES = [
   'plants',
   'care_schedules',
@@ -32,18 +36,29 @@ const EXPECTED_TABLES = [
 ] as const;
 
 /**
- * Read the generated migration SQL and split it into individual statements on
- * Drizzle's `--> statement-breakpoint` markers, discarding empty fragments.
+ * Read every generated migration SQL file, in journal order, and split each
+ * into individual statements on Drizzle's `--> statement-breakpoint` markers,
+ * discarding empty fragments.
  */
 function loadMigrationStatements(): string[] {
-  const raw = fs.readFileSync(MIGRATION_FILE, 'utf8');
-  return raw
-    .split('--> statement-breakpoint')
-    .map((stmt) => stmt.trim())
-    .filter((stmt) => stmt.length > 0);
+  const journal: MigrationJournal = JSON.parse(
+    fs.readFileSync(path.join(MIGRATIONS_DIR, 'meta/_journal.json'), 'utf8'),
+  );
+
+  const statements: string[] = [];
+  for (const entry of journal.entries) {
+    const raw = fs.readFileSync(path.join(MIGRATIONS_DIR, `${entry.tag}.sql`), 'utf8');
+    statements.push(
+      ...raw
+        .split('--> statement-breakpoint')
+        .map((stmt) => stmt.trim())
+        .filter((stmt) => stmt.length > 0),
+    );
+  }
+  return statements;
 }
 
-describe('Drizzle migration 0000_glossy_midnight', () => {
+describe('Drizzle migrations', () => {
   let db: Database.Database;
 
   beforeEach(() => {
@@ -116,6 +131,7 @@ describe('Drizzle migration 0000_glossy_midnight', () => {
         'species_name',
         'location_label',
         'cover_photo_path',
+        'quantity',
         'created_at',
         'updated_at',
         'deleted_at',

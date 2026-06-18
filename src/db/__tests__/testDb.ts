@@ -25,23 +25,37 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '../schema';
 import type { PlantDatabase } from '../../services/PlantService';
 
-/** Path to the Drizzle-generated migration that ships in the app binary. */
-const MIGRATION_FILE = path.resolve(
-  __dirname,
-  '../migrations/0000_glossy_midnight.sql',
-);
+/** Directory containing every Drizzle-generated migration that ships in the app binary. */
+const MIGRATIONS_DIR = path.resolve(__dirname, '../migrations');
+
+/** Drizzle's per-migration journal, in the same shape it writes to `meta/_journal.json`. */
+interface MigrationJournal {
+  entries: { idx: number; tag: string }[];
+}
 
 /**
- * Read the generated migration SQL and split it into individual statements on
+ * Read every generated migration SQL file, in the order recorded by Drizzle's
+ * `meta/_journal.json`, and split each into individual statements on
  * Drizzle's `--> statement-breakpoint` markers, discarding empty fragments.
- * Matches the established pattern in `migrations.test.ts`.
+ * Reading the journal (rather than hardcoding a single migration filename)
+ * means this harness automatically picks up new migrations as they're added.
  */
 function loadMigrationStatements(): string[] {
-  const raw = fs.readFileSync(MIGRATION_FILE, 'utf8');
-  return raw
-    .split('--> statement-breakpoint')
-    .map((stmt) => stmt.trim())
-    .filter((stmt) => stmt.length > 0);
+  const journal: MigrationJournal = JSON.parse(
+    fs.readFileSync(path.join(MIGRATIONS_DIR, 'meta/_journal.json'), 'utf8'),
+  );
+
+  const statements: string[] = [];
+  for (const entry of journal.entries) {
+    const raw = fs.readFileSync(path.join(MIGRATIONS_DIR, `${entry.tag}.sql`), 'utf8');
+    statements.push(
+      ...raw
+        .split('--> statement-breakpoint')
+        .map((stmt) => stmt.trim())
+        .filter((stmt) => stmt.length > 0),
+    );
+  }
+  return statements;
 }
 
 /** A test database plus a handle to close the underlying connection. */

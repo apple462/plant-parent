@@ -66,7 +66,11 @@ jest.mock('@/services/StorageService', () => ({
 }));
 
 jest.mock('@/services/EncyclopediaService', () => ({
-  EncyclopediaService: { getById: jest.fn(() => null) },
+  EncyclopediaService: {
+    getById: jest.fn(() => null),
+    matchByName: jest.fn(() => null),
+    listAll: jest.fn(() => []),
+  },
 }));
 
 // --- VirtualJungle deps (mirror src/app/(tabs)/__tests__/index.test.tsx) ----
@@ -130,9 +134,21 @@ jest.mock('@/components/ui', () => {
         React.createElement(ActivityIndicator, null),
         label ? React.createElement(Text, null, label) : null,
       ),
-    // PlantFormScreen uses Input + ErrorBanner; lightweight stubs keep the
-    // render tree free of native concerns while remaining query-able.
+    // PlantFormScreen uses Input + Autocomplete + ErrorBanner; lightweight
+    // stubs keep the render tree free of native concerns while remaining
+    // query-able.
     Input: ({ label, value, onChangeText, error }: any) =>
+      React.createElement(
+        View,
+        null,
+        React.createElement(TextInput, {
+          accessibilityLabel: label,
+          value,
+          onChangeText,
+        }),
+        error ? React.createElement(Text, null, error) : null,
+      ),
+    Autocomplete: ({ label, value, onChangeText, error }: any) =>
       React.createElement(
         View,
         null,
@@ -169,6 +185,7 @@ beforeEach(() => {
       {
         id: 'p1',
         displayName: 'Fern',
+        quantity: 1,
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'),
       },

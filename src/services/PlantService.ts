@@ -95,6 +95,13 @@ export interface Plant {
   speciesName?: string;
   locationLabel?: string;
   coverPhotoPath?: string;
+  /**
+   * How many physical plants this single record represents (e.g. buying 3 of
+   * the same Snake Plant doesn't require 3 separate profiles — one record
+   * with `quantity: 3` shares one care schedule for all of them). Always a
+   * positive integer; defaults to 1.
+   */
+  quantity: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,6 +112,8 @@ export interface CreatePlantInput {
   speciesName?: string;
   locationLabel?: string;
   coverPhotoPath?: string;
+  /** How many physical plants this record represents. Defaults to 1 when omitted. */
+  quantity?: number;
 }
 
 /**
@@ -117,6 +126,7 @@ export interface UpdatePlantInput {
   speciesName?: string | null;
   locationLabel?: string | null;
   coverPhotoPath?: string | null;
+  quantity?: number;
 }
 
 /**
@@ -140,6 +150,10 @@ export class PlantNotFoundError extends Error {
   }
 }
 
+/** Inclusive bounds for `quantity` — a sanity ceiling, not a real-world limit. */
+export const MIN_QUANTITY = 1;
+export const MAX_QUANTITY = 999;
+
 /** Convert a nullable DB text column into an optional domain field. */
 function optional(value: string | null): string | undefined {
   return value === null ? undefined : value;
@@ -153,9 +167,21 @@ function toPlant(row: PlantRow): Plant {
     speciesName: optional(row.speciesName),
     locationLabel: optional(row.locationLabel),
     coverPhotoPath: optional(row.coverPhotoPath),
+    quantity: row.quantity,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),
   };
+}
+
+/** Validate a `quantity` value: must be a whole number in [MIN_QUANTITY, MAX_QUANTITY]. */
+function validateQuantity(quantity: number): { valid: true } | { valid: false; error: string } {
+  if (!Number.isInteger(quantity) || quantity < MIN_QUANTITY || quantity > MAX_QUANTITY) {
+    return {
+      valid: false,
+      error: `Quantity must be a whole number from ${MIN_QUANTITY} to ${MAX_QUANTITY}.`,
+    };
+  }
+  return { valid: true };
 }
 
 /**
@@ -176,6 +202,12 @@ export async function createPlant(
     throw new PlantValidationError(nameResult.error ?? 'Invalid display name.');
   }
 
+  const quantity = input.quantity ?? MIN_QUANTITY;
+  const quantityResult = validateQuantity(quantity);
+  if (!quantityResult.valid) {
+    throw new PlantValidationError(quantityResult.error);
+  }
+
   const now = Date.now();
   const row = {
     id: generateId(),
@@ -183,6 +215,7 @@ export async function createPlant(
     speciesName: input.speciesName ?? null,
     locationLabel: input.locationLabel ?? null,
     coverPhotoPath: input.coverPhotoPath ?? null,
+    quantity,
     createdAt: now,
     updatedAt: now,
     deletedAt: null,
@@ -241,6 +274,14 @@ export async function updatePlant(
 
   if ('coverPhotoPath' in input) {
     changes.coverPhotoPath = input.coverPhotoPath ?? null;
+  }
+
+  if ('quantity' in input && input.quantity !== undefined) {
+    const quantityResult = validateQuantity(input.quantity);
+    if (!quantityResult.valid) {
+      throw new PlantValidationError(quantityResult.error);
+    }
+    changes.quantity = input.quantity;
   }
 
   changes.updatedAt = Date.now();
@@ -364,6 +405,45 @@ export async function deletePlant(
 }
 
 /**
+ * Remove `count` physical plants from a Plant_Profile that represents
+ * multiple plants of the same kind (`quantity > 1`).
+ *
+ * - If `count` is greater than or equal to the plant's current `quantity`,
+ *   this removes the LAST of them — equivalent to (and implemented as) a full
+ *   {@link deletePlant} (cascades care schedules, journal entries, etc.).
+ * - Otherwise, just decrements `quantity` by `count` and refreshes
+ *   `updatedAt`; the care schedule, journal, and every other child record are
+ *   untouched, since they're shared across all of this record's plants.
+ *
+ * Throws {@link PlantNotFoundError} if the plant does not exist, and
+ * {@link PlantValidationError} if `count` is not a positive whole number.
+ *
+ * @returns the updated `Plant` (new lower quantity), or `null` if this call
+ * fully deleted the record.
+ */
+export async function removeQuantity(
+  id: string,
+  count: number,
+  database: PlantDatabase = defaultDatabase(),
+): Promise<Plant | null> {
+  if (!Number.isInteger(count) || count < 1) {
+    throw new PlantValidationError('Enter a whole number of at least 1.');
+  }
+
+  const existing = await getPlant(id, database);
+  if (!existing) {
+    throw new PlantNotFoundError(id);
+  }
+
+  if (count >= existing.quantity) {
+    await deletePlant(id, database);
+    return null;
+  }
+
+  return updatePlant(id, { quantity: existing.quantity - count }, database);
+}
+
+/**
  * Fetch a single Plant_Profile by id, or `null` if it does not exist or has
  * been soft-deleted.
  *
@@ -413,6 +493,7 @@ export const PlantService = {
   createPlant,
   updatePlant,
   deletePlant,
+  removeQuantity,
   getPlant,
   listPlants,
 };

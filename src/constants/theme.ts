@@ -64,6 +64,16 @@ export const Spacing = {
 export const BottomTabInset = Platform.select({ ios: 50, android: 80 }) ?? 0;
 export const MaxContentWidth = 800;
 
+/**
+ * Bottom clearance every scrollable screen (and any absolutely-positioned
+ * bottom button/FAB) must reserve so its last content/action never sits
+ * under the floating tab bar (`FloatingTabBar`, which floats above content at
+ * `insets.bottom + Space.sm` and is roughly 60–70pt tall). Comfortably larger
+ * than the largest realistic `insets.bottom + tab bar height` so content
+ * always clears it, including on devices with a home-indicator inset.
+ */
+export const TabBarClearance = 140;
+
 /* -------------------------------------------------------------------------- */
 /* Plant Parent design tokens                                                 */
 /*                                                                            */
@@ -135,6 +145,13 @@ export const Palette = {
     500: '#2F77C0',
     700: '#1E5694',
   },
+  /** Floral accent — used sparingly for delight (badges, highlights), never navigation. */
+  coral: {
+    100: '#FBE5E3',
+    400: '#E8836F',
+    500: '#DB6650',
+    700: '#A1452F',
+  },
 } as const;
 
 /**
@@ -192,6 +209,8 @@ export const SemanticColors = {
   warningMuted: Palette.amber[100],
   info: Palette.blue[500],
   infoMuted: Palette.blue[100],
+  accent: Palette.coral[500],
+  accentMuted: Palette.coral[100],
   border: Palette.neutral[200],
   surface: Palette.neutral[0],
   surfaceMuted: Palette.neutral[50],
@@ -305,6 +324,20 @@ export const JungleGradient = ['#F4FAF5', '#E8F5EC', '#DCEFE0'] as const;
  * wanted behind light (`onPrimary`) text. Still a typed 3-tuple.
  */
 export const JungleGradientDeep = ['#2E7D5B', '#256A4D', '#143A2A'] as const;
+
+/**
+ * Compact two-stop canopy gradient sized for cards/headers rather than full
+ * screens (hero cover photos, onboarding badges, banner accents). Pairs with
+ * light (`onPrimary`) text/icons on top.
+ */
+export const JungleGradientCard = ['#3A8F69', '#1C513B'] as const;
+
+/**
+ * Surface-card convention: every elevated "floating" surface (cards, rows,
+ * dialogs, toasts) pairs a generous corner radius (`BorderRadius.lg` for
+ * compact rows, `BorderRadius.xl` for cards/dialogs) with a matching
+ * `Elevation` shadow — never a flat 1px border on its own.
+ */
 
 /**
  * React Native shadow presets in three sizes. Each preset is a ready-to-spread

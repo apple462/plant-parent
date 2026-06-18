@@ -25,14 +25,16 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
 import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { Input } from '@/components/ui';
 import {
     BorderRadius,
     Elevation,
-    FontSize,
-    FontWeight,
+    Palette,
     SemanticColors,
     Space,
+    TabBarClearance,
+    Typography,
 } from '@/constants/theme';
 import { EncyclopediaService, type SpeciesEntry } from '@/services/EncyclopediaService';
 
@@ -56,17 +58,12 @@ export default function EncyclopediaListScreen() {
   return (
     <JungleBackground>
       <View style={styles.container}>
+        <ScreenHeader title="Encyclopedia" />
         <View style={styles.searchRow}>
-          {/* Decorative leading glyph hinting at the search field. */}
-          <Icon
-            name="search"
-            size={20}
-            color={SemanticColors.textSecondary}
-            style={styles.searchIcon}
-          />
           <Input
             containerStyle={styles.searchInput}
             label="Search"
+            leftIcon="search"
             placeholder="Search by common or scientific name"
             value={query}
             onChangeText={setQuery}
@@ -90,10 +87,16 @@ export default function EncyclopediaListScreen() {
                 onPress={() => handlePressSpecies(item)}
                 style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               >
-                <Icon name="leaf" size={22} color={SemanticColors.primary} />
+                <View style={styles.rowIconChip}>
+                  <Icon name="leaf" size={22} color={SemanticColors.primary} />
+                </View>
                 <View style={styles.rowText}>
-                  <Text style={styles.commonName}>{item.commonName}</Text>
-                  <Text style={styles.scientificName}>{item.scientificName}</Text>
+                  <Text style={styles.commonName} numberOfLines={1}>{item.commonName}</Text>
+                  <Text style={styles.scientificName} numberOfLines={1}>{item.scientificName}</Text>
+                  <View style={styles.lightRow}>
+                    <Icon name="sun" size={13} color={SemanticColors.warning} />
+                    <Text style={styles.lightText}>{item.lightRequirement}</Text>
+                  </View>
                 </View>
                 <Icon name="forward" size={22} color={SemanticColors.textSecondary} />
               </Pressable>
@@ -101,7 +104,9 @@ export default function EncyclopediaListScreen() {
           />
         ) : (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No results found</Text>
+            <Icon name="search" size={48} color={SemanticColors.primary} />
+            <Text style={styles.emptyTitle}>No species found</Text>
+            <Text style={styles.emptyText}>Try a different common or scientific name.</Text>
           </View>
         )}
       </View>
@@ -116,32 +121,25 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Space.sm,
     paddingHorizontal: Space.md,
     paddingTop: Space.md,
     paddingBottom: Space.sm,
   },
-  searchIcon: {
-    // Nudge down so it aligns with the input field, not the label above it.
-    marginTop: Space.lg,
-  },
   searchInput: {
-    flex: 1,
+    alignSelf: 'stretch',
   },
   listContent: {
     paddingHorizontal: Space.md,
     // Clear the floating tab bar so the last rows stay tappable.
-    paddingBottom: Space.xxl * 2,
+    paddingBottom: TabBarClearance,
     gap: Space.sm,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Space.md,
-    paddingVertical: Space.md,
-    paddingHorizontal: Space.md,
+    paddingVertical: Space.sm,
+    paddingHorizontal: Space.sm,
     borderRadius: BorderRadius.lg,
     backgroundColor: SemanticColors.surface,
     ...Elevation.sm,
@@ -149,19 +147,35 @@ const styles = StyleSheet.create({
   rowPressed: {
     backgroundColor: SemanticColors.surfaceMuted,
   },
+  rowIconChip: {
+    width: 44,
+    height: 44,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Palette.green[50],
+  },
   rowText: {
     flex: 1,
-    gap: Space.xs,
+    gap: 2,
   },
   commonName: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
   },
   scientificName: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.regular,
+    ...Typography.caption,
     fontStyle: 'italic',
+    color: SemanticColors.textSecondary,
+  },
+  lightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+    marginTop: 2,
+  },
+  lightText: {
+    ...Typography.label,
     color: SemanticColors.textSecondary,
   },
   emptyState: {
@@ -169,9 +183,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: Space.lg,
+    gap: Space.sm,
+  },
+  emptyTitle: {
+    ...Typography.heading,
+    color: SemanticColors.textPrimary,
   },
   emptyText: {
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textSecondary,
+    textAlign: 'center',
   },
 });

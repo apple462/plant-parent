@@ -16,31 +16,40 @@
  *     best-effort deletes the photo file (Req 6.7). Because the timeline is
  *     driven by the live `useJournal` query, the deleted entry disappears
  *     automatically once the DB row is removed.
- *   - A floating "Add Entry" button navigates to `journal/new`.
- *   - A "Compare" header action navigates to `journal/compare`, shown only when
- *     the plant has two or more entries (Req 6.9).
+ *   - A plus icon in the header navigates to `journal/new`.
+ *   - A compare icon in the header navigates to `journal/compare`, shown only
+ *     when the plant has two or more entries (Req 6.9).
  *
  * Loading and error states reuse the shared `LoadingSpinner` and a simple
  * inline error view, matching the Virtual Jungle screen conventions.
  *
  * Requirements: 6.1, 6.7, 6.8
  */
+import { Image } from 'expo-image';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
 import { JournalTimeline } from '@/components/JournalTimeline';
-import { Button, ConfirmationDialog, LoadingSpinner } from '@/components/ui';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Button, ConfirmationDialog, LoadingSpinner, TextArea } from '@/components/ui';
 import {
     BorderRadius,
+    Elevation,
+    MaxContentWidth,
     SemanticColors,
     Space,
     Typography,
 } from '@/constants/theme';
 import { useJournal } from '@/hooks/useJournal';
 import { JournalService, type JournalEntry } from '@/services/JournalService';
+import { formatJournalTimestamp } from '@/utils/dateUtils';
+
+/** Note length cap, matching the Add Entry form (Req 6.3). */
+const MAX_NOTE_LENGTH = 500;
 
 export default function GrowthJournalScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
@@ -50,12 +59,49 @@ export default function GrowthJournalScreen() {
   // The entry awaiting delete confirmation; `null` when the dialog is closed.
   const [pendingDelete, setPendingDelete] = useState<JournalEntry | null>(null);
 
+  // Full CRUD detail/edit modal for a tapped entry — Read (photo + timestamp +
+  // note), Update (edit the note), and Delete (hands off to the confirmation
+  // dialog above). `null` when the modal is closed.
+  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  const [editNoteText, setEditNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
   const handleAddEntry = () => router.push(`/plants/${plantId}/journal/new`);
   const handleCompare = () => router.push(`/plants/${plantId}/journal/compare`);
 
-  // Long-press surfaces the delete affordance by opening the confirmation
-  // dialog for the pressed entry (Req 6.8).
-  const handleEntryLongPress = (entry: JournalEntry) => setPendingDelete(entry);
+  // Tapping an entry opens the detail/edit modal (Update + Delete affordances).
+  const handleEntryPress = (entry: JournalEntry) => {
+    setSelectedEntry(entry);
+    setEditNoteText(entry.note ?? '');
+  };
+
+  const handleCloseEntryModal = () => {
+    if (!savingNote) setSelectedEntry(null);
+  };
+
+  // Saves the edited note via JournalService.updateEntry. A failure surfaces
+  // the global error banner (via runDbWrite) and leaves the modal open with
+  // the user's edit intact so they can retry.
+  const handleSaveNote = async () => {
+    if (!selectedEntry) return;
+    setSavingNote(true);
+    try {
+      await JournalService.updateEntry(selectedEntry.id, { note: editNoteText.trim() });
+      setSelectedEntry(null);
+    } catch {
+      // Global banner already shown by runDbWrite; nothing more to do here.
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  // Delete, reached from inside the entry modal: close the modal and route
+  // into the same confirmation flow used everywhere else in the app.
+  const handleDeleteFromModal = () => {
+    if (!selectedEntry) return;
+    setPendingDelete(selectedEntry);
+    setSelectedEntry(null);
+  };
 
   const handleCancelDelete = () => setPendingDelete(null);
 
@@ -82,22 +128,34 @@ export default function GrowthJournalScreen() {
   const canCompare = entries.length >= 2;
 
   return (
+    <JungleBackground>
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Stack.Screen
-        options={{
-          title: 'Growth Journal',
-          headerRight: canCompare
-            ? () => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Compare journal entries"
-                  onPress={handleCompare}
-                  hitSlop={Space.sm}>
-                  <Text style={styles.headerAction}>Compare</Text>
-                </Pressable>
-              )
-            : undefined,
-        }}
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader
+        title="Growth Journal"
+        onBack={() => router.back()}
+        right={
+          <View style={styles.headerActions}>
+            {canCompare ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Compare journal entries"
+                onPress={handleCompare}
+                hitSlop={Space.sm}
+                style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}>
+                <Icon name="compare" size={22} color={SemanticColors.primary} />
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Add journal entry"
+              onPress={handleAddEntry}
+              hitSlop={Space.sm}
+              style={({ pressed }) => [styles.headerIconButton, pressed && styles.headerIconButtonPressed]}>
+              <Icon name="plus" size={22} color={SemanticColors.primary} />
+            </Pressable>
+          </View>
+        }
       />
 
       {isLoading ? (
@@ -113,23 +171,10 @@ export default function GrowthJournalScreen() {
       ) : (
         <JournalTimeline
           entries={entries}
-          onEntryLongPress={handleEntryLongPress}
+          onEntryPress={handleEntryPress}
           ListEmptyComponent={<EmptyState onAddEntry={handleAddEntry} />}
         />
       )}
-
-      {/* Add-entry affordance. Hidden in the empty state, where the empty
-          state's own CTA handles adding the first entry. */}
-      {!isLoading && !error && entries.length > 0 ? (
-        <View style={styles.fabContainer} pointerEvents="box-none">
-          <Button
-            label="Add Entry"
-            onPress={handleAddEntry}
-            style={styles.fab}
-            accessibilityLabel="Add journal entry"
-          />
-        </View>
-      ) : null}
 
       <ConfirmationDialog
         visible={pendingDelete !== null}
@@ -140,7 +185,98 @@ export default function GrowthJournalScreen() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
+
+      <EntryDetailModal
+        entry={selectedEntry}
+        noteText={editNoteText}
+        onChangeNoteText={setEditNoteText}
+        saving={savingNote}
+        onSave={() => {
+          void handleSaveNote();
+        }}
+        onDelete={handleDeleteFromModal}
+        onClose={handleCloseEntryModal}
+      />
     </SafeAreaView>
+    </JungleBackground>
+  );
+}
+
+/**
+ * Read/Update/Delete modal for a single Journal_Entry, opened by tapping a
+ * timeline row. Shows the photo and capture timestamp (read-only), an
+ * editable note (Update), and a Delete action — completing CRUD for entries
+ * alongside the Add Entry form (Create) and the timeline itself (Read-many).
+ */
+function EntryDetailModal({
+  entry,
+  noteText,
+  onChangeNoteText,
+  saving,
+  onSave,
+  onDelete,
+  onClose,
+}: {
+  entry: JournalEntry | null;
+  noteText: string;
+  onChangeNoteText: (text: string) => void;
+  saving: boolean;
+  onSave: () => void;
+  onDelete: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal visible={entry !== null} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable accessibilityLabel="Dismiss" style={styles.modalBackdrop} onPress={onClose}>
+        <Pressable
+          accessibilityRole="alert"
+          accessibilityViewIsModal
+          style={styles.modalCard}
+          onPress={() => {
+            // Swallow presses so tapping the card does not dismiss the modal.
+          }}>
+          {entry ? (
+            <ScrollView keyboardShouldPersistTaps="handled">
+              <Image
+                style={styles.modalPhoto}
+                source={{ uri: entry.photoPath }}
+                contentFit="cover"
+                accessibilityIgnoresInvertColors
+                accessibilityLabel="Journal entry photo"
+              />
+              <Text style={styles.modalTimestamp}>{formatJournalTimestamp(entry.capturedAt)}</Text>
+              <TextArea
+                label="Note"
+                value={noteText}
+                onChangeText={onChangeNoteText}
+                maxLength={MAX_NOTE_LENGTH}
+                placeholder="Add a note about this photo…"
+                autoCapitalize="sentences"
+                containerStyle={styles.modalNote}
+              />
+              <View style={styles.modalActions}>
+                <Button
+                  label="Delete"
+                  variant="destructive"
+                  onPress={onDelete}
+                  disabled={saving}
+                  style={styles.modalAction}
+                  accessibilityLabel="Delete this journal entry"
+                />
+                <Button
+                  label="Save"
+                  onPress={onSave}
+                  loading={saving}
+                  disabled={saving}
+                  style={styles.modalAction}
+                  accessibilityLabel="Save note"
+                />
+              </View>
+            </ScrollView>
+          ) : null}
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -166,12 +302,22 @@ function EmptyState({ onAddEntry }: { onAddEntry: () => void }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
-  headerAction: {
-    ...Typography.bodyBold,
-    color: SemanticColors.primary,
-    paddingHorizontal: Space.sm,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+  },
+  headerIconButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.full,
+  },
+  headerIconButtonPressed: {
+    backgroundColor: SemanticColors.surfaceMuted,
   },
   centered: {
     flex: 1,
@@ -204,13 +350,42 @@ const styles = StyleSheet.create({
     color: SemanticColors.textSecondary,
     textAlign: 'center',
   },
-  fabContainer: {
-    position: 'absolute',
-    left: Space.md,
-    right: Space.md,
-    bottom: Space.lg,
+  modalBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Space.lg,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  fab: {
-    borderRadius: BorderRadius.full,
+  modalCard: {
+    width: '100%',
+    maxWidth: MaxContentWidth,
+    maxHeight: '85%',
+    padding: Space.lg,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: SemanticColors.surface,
+    ...Elevation.lg,
+  },
+  modalPhoto: {
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: SemanticColors.surfaceMuted,
+  },
+  modalTimestamp: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
+    marginTop: Space.sm,
+  },
+  modalNote: {
+    marginTop: Space.md,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Space.sm,
+    marginTop: Space.md,
+  },
+  modalAction: {
+    flex: 1,
   },
 });

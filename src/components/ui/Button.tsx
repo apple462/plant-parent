@@ -1,6 +1,9 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
+import { Animated, ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
-import { BorderRadius, FontSize, FontWeight, Palette, SemanticColors, Space } from '@/constants/theme';
+import { Icon, type IconName } from '@/components/Icon';
+import { BorderRadius, Elevation, JungleGradientDeep, Palette, SemanticColors, Space, Typography } from '@/constants/theme';
 
 /** Visual style of the button. */
 export type ButtonVariant = 'primary' | 'secondary' | 'destructive';
@@ -12,6 +15,8 @@ export interface ButtonProps {
   onPress: () => void;
   /** Visual variant. Defaults to `'primary'`. */
   variant?: ButtonVariant;
+  /** Optional leading icon. */
+  icon?: IconName;
   /** When true the button is non-interactive and visually dimmed. */
   disabled?: boolean;
   /** When true a spinner replaces the label and presses are ignored. */
@@ -22,14 +27,19 @@ export interface ButtonProps {
   accessibilityLabel?: string;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
 /**
  * A pressable button with primary / secondary / destructive variants and
- * disabled + loading states. Used across forms and dialogs.
+ * disabled + loading states. The primary variant carries a deep-canopy
+ * gradient fill and a soft scale-down press animation; used across forms and
+ * dialogs.
  */
 export function Button({
   label,
   onPress,
   variant = 'primary',
+  icon,
   disabled = false,
   loading = false,
   style,
@@ -37,29 +47,53 @@ export function Button({
 }: ButtonProps) {
   const isInactive = disabled || loading;
   const palette = VARIANT_STYLES[variant];
+  const [scale] = useState(() => new Animated.Value(1));
+
+  const handlePressIn = () => {
+    if (isInactive) return;
+    Animated.timing(scale, { toValue: 0.97, duration: 80, useNativeDriver: true }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.timing(scale, { toValue: 1, duration: 120, useNativeDriver: true }).start();
+  };
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: isInactive, busy: loading }}
       disabled={isInactive}
       onPress={onPress}
-      style={({ pressed }) => [
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[
         styles.base,
         { backgroundColor: palette.background, borderColor: palette.border },
-        pressed && !isInactive && styles.pressed,
+        variant === 'primary' && !isInactive && Elevation.sm,
         isInactive && styles.inactive,
+        { transform: [{ scale }] },
         style,
       ]}>
+      {variant === 'primary' ? (
+        <LinearGradient
+          colors={JungleGradientDeep}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
       {loading ? (
         <ActivityIndicator color={palette.foreground} />
       ) : (
-        <Text style={[styles.label, { color: palette.foreground }]} numberOfLines={1}>
-          {label}
-        </Text>
+        <>
+          {icon ? <Icon name={icon} size={18} color={palette.foreground} style={styles.icon} /> : null}
+          <Text style={[styles.label, { color: palette.foreground }]} numberOfLines={1}>
+            {label}
+          </Text>
+        </>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -73,7 +107,7 @@ const VARIANT_STYLES: Record<ButtonVariant, VariantPalette> = {
   primary: {
     background: SemanticColors.primary,
     foreground: SemanticColors.onPrimary,
-    border: SemanticColors.primary,
+    border: 'transparent',
   },
   secondary: {
     background: SemanticColors.surface,
@@ -97,15 +131,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  pressed: {
-    opacity: 0.8,
+    overflow: 'hidden',
   },
   inactive: {
     opacity: 0.5,
   },
+  icon: {
+    marginRight: Space.xs,
+  },
   label: {
-    fontSize: FontSize.md,
-    fontWeight: FontWeight.semibold,
+    ...Typography.bodyBold,
   },
 });

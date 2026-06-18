@@ -17,3 +17,13 @@ export const PREFERRED_REMINDER_MINUTE = 'preferred_reminder_minute';
 
 /** User's display name, captured during onboarding. Stored as a plain string. */
 export const USER_NAME = 'user_name';
+
+/**
+ * Local-only session lock. Absent or any value other than the literal string
+ * `'false'` is treated as logged in (so users who completed onboarding before
+ * this flag existed are never unexpectedly logged out). Logging out writes
+ * the string `'false'`; logging back in writes `'true'`. This never gates
+ * onboarding or touches `USER_NAME` / plant data — it is purely a privacy
+ * lock the user can re-enter with one tap.
+ */
+export const SESSION_ACTIVE = 'session_active';

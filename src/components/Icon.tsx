@@ -51,7 +51,9 @@ export type IconName =
   | 'location'
   | 'wilting'
   | 'check'
-  | 'sun';
+  | 'sun'
+  | 'logout'
+  | 'pot';
 
 /**
  * Maps each semantic name to a concrete MaterialCommunityIcons glyph. Every
@@ -89,6 +91,8 @@ export const MAP: Record<IconName, keyof typeof MaterialCommunityIcons.glyphMap>
   wilting: 'flower-tulip-outline',
   check: 'check',
   sun: 'white-balance-sunny',
+  logout: 'logout',
+  pot: 'pot-outline',
 };
 
 export interface IconProps {

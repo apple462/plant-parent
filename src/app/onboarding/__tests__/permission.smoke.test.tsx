@@ -27,6 +27,12 @@ import OnboardingStepScreen from '../[step]';
 
 // --- Mocks -----------------------------------------------------------------
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 // Permission DENIED: requestPermissions resolves to false. This must NOT block
 // progress through onboarding (Req 10.4).
 jest.mock('@/services/NotificationService', () => ({

@@ -115,15 +115,22 @@ function makePlant(id: string, displayName: string): Plant {
   return {
     id,
     displayName,
+    quantity: 1,
     createdAt: new Date('2024-01-01T00:00:00Z'),
     updatedAt: new Date('2024-01-01T00:00:00Z'),
   };
 }
 
 /** Set the rows returned by the (mocked) care_schedules live query. */
-function setScheduleRows(rows: { plantId: string; nextDueAt: number | null }[]): void {
+function setScheduleRows(
+  rows: { plantId: string; nextDueAt: number | null; id?: string; type?: string }[],
+): void {
   mockUseLiveQuery.mockReturnValue({
-    data: rows,
+    data: rows.map((row, index) => ({
+      id: row.id ?? `s${index}`,
+      type: row.type ?? 'watering',
+      ...row,
+    })),
     error: undefined,
     updatedAt: Date.now(),
   } as any);

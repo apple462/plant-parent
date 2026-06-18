@@ -36,24 +36,29 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { PermissionStatus } from 'expo-notifications';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { Button, Input, Toast } from '@/components/ui';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
+import { Button, ConfirmationDialog, Input, Toast } from '@/components/ui';
 import {
     PREFERRED_REMINDER_HOUR,
     PREFERRED_REMINDER_MINUTE,
+    SESSION_ACTIVE,
 } from '@/constants/storageKeys';
 import {
     BorderRadius,
     Elevation,
     SemanticColors,
     Space,
+    TabBarClearance,
     Typography
 } from '@/constants/theme';
+import { useUserName } from '@/hooks/useUserName';
 
 /** App display name and version surfaced in the About card. */
 const APP_NAME = 'Plant Parent';
@@ -116,6 +121,9 @@ function permissionLabel(status: PermissionStatus | null): string {
 }
 
 export default function SettingsScreen() {
+  const router = useRouter();
+  const userName = useUserName();
+
   // Raw text the user edits; seeded from AsyncStorage on first load.
   const [hourText, setHourText] = useState('');
   const [minuteText, setMinuteText] = useState('');
@@ -125,6 +133,21 @@ export default function SettingsScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   const [permissionStatus, setPermissionStatus] = useState<PermissionStatus | null>(null);
+
+  // --- Log out (local-only session lock; never touches plant data) -------
+  const [confirmingLogout, setConfirmingLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleConfirmLogout = useCallback(async () => {
+    setLoggingOut(true);
+    try {
+      await AsyncStorage.setItem(SESSION_ACTIVE, 'false');
+    } catch {
+      // A failed write just means the lock won't survive a relaunch — the
+      // current session is still sent to /login below either way.
+    }
+    router.replace('/login');
+  }, [router]);
 
   // --- Load persisted preferred time on mount ----------------------------
   useEffect(() => {
@@ -205,10 +228,10 @@ export default function SettingsScreen() {
   const isDenied = permissionStatus === PermissionStatus.DENIED;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <JungleBackground>
+    <SafeAreaView style={styles.container} edges={[]}>
+      <ScreenHeader title="Settings" />
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.screenTitle}>Settings</Text>
-
         {/* Preferred reminder time -------------------------------------- */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
@@ -307,37 +330,68 @@ export default function SettingsScreen() {
 
           <Text style={styles.sectionBody}>{APP_DEVELOPER}</Text>
         </View>
+
+        {/* Account / Log out ---------------------------------------------
+            Local-only session lock: logging out never deletes or modifies
+            plant data, care schedules, or the saved display name — it just
+            hides the app behind /login until the user logs back in. */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="logout" size={20} color={SemanticColors.primary} />
+            <Text style={styles.sectionTitle}>Account</Text>
+          </View>
+          <Text style={styles.sectionBody}>
+            {userName ? `Signed in as ${userName}.` : 'No name set yet.'} Logging out keeps
+            every plant and care record safely on this device.
+          </Text>
+          <Button
+            label="Log out"
+            variant="secondary"
+            icon="logout"
+            onPress={() => setConfirmingLogout(true)}
+            style={styles.saveButton}
+          />
+        </View>
       </ScrollView>
 
       <View style={styles.toastWrap} pointerEvents="box-none">
         <Toast message={toast} onDismiss={() => setToast(null)} />
       </View>
+
+      <ConfirmationDialog
+        visible={confirmingLogout}
+        title="Log out?"
+        message="You can log back in any time with one tap — your plants, photos, and care history all stay right here on this device."
+        confirmLabel={loggingOut ? 'Logging out…' : 'Log out'}
+        confirmVariant="primary"
+        onConfirm={() => {
+          void handleConfirmLogout();
+        }}
+        onCancel={() => {
+          if (!loggingOut) setConfirmingLogout(false);
+        }}
+      />
     </SafeAreaView>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Space.md,
     gap: Space.lg,
-    paddingBottom: Space.xxl * 2,
-  },
-  screenTitle: {
-    ...Typography.title,
-    color: SemanticColors.textPrimary,
+    paddingBottom: TabBarClearance,
   },
   card: {
     backgroundColor: SemanticColors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: SemanticColors.border,
-    padding: Space.md,
+    borderRadius: BorderRadius.xl,
+    padding: Space.lg,
     gap: Space.md,
-    ...Elevation.sm,
+    ...Elevation.md,
   },
   sectionHeader: {
     flexDirection: 'row',

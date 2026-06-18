@@ -35,7 +35,7 @@
  * Requirements: 6.9
  */
 import { Image } from 'expo-image';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ScrollView,
@@ -47,11 +47,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { LoadingSpinner } from '@/components/ui';
 import {
     BorderRadius,
+    Elevation,
     SemanticColors,
     Space,
+    TabBarClearance,
     Typography,
 } from '@/constants/theme';
 import { useJournal } from '@/hooks/useJournal';
@@ -60,6 +64,7 @@ import { formatJournalTimestamp } from '@/utils/dateUtils';
 
 export default function CompareScreen() {
   const { plantId } = useLocalSearchParams<{ plantId: string }>();
+  const router = useRouter();
   const { entries, isLoading, error } = useJournal(plantId);
 
   // Selections are tracked by entry id so they survive list re-orderings and
@@ -79,8 +84,10 @@ export default function CompareScreen() {
   }, [entries]);
 
   return (
+    <JungleBackground>
     <SafeAreaView style={styles.container} edges={['bottom']}>
-      <Stack.Screen options={{ title: 'Compare' }} />
+      <Stack.Screen options={{ headerShown: false }} />
+      <ScreenHeader title="Compare" onBack={() => router.back()} />
 
       {isLoading ? (
         <LoadingSpinner label="Loading journal…" />
@@ -111,6 +118,7 @@ export default function CompareScreen() {
         />
       )}
     </SafeAreaView>
+    </JungleBackground>
   );
 }
 
@@ -231,11 +239,12 @@ const CHIP_SIZE = 72;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: SemanticColors.surfaceMuted,
+    backgroundColor: 'transparent',
   },
   content: {
     padding: Space.md,
     gap: Space.lg,
+    paddingBottom: TabBarClearance,
   },
   centered: {
     flex: 1,
@@ -261,10 +270,9 @@ const styles = StyleSheet.create({
   pane: {
     flex: 1,
     backgroundColor: SemanticColors.surface,
-    borderRadius: BorderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: SemanticColors.border,
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
+    ...Elevation.sm,
   },
   panePhoto: {
     width: '100%',

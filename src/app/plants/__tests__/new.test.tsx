@@ -22,6 +22,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 // JS transformer can't parse. Stub it out — it has no runtime behaviour here.
 jest.mock('@/global.css', () => ({}), { virtual: true });
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 const mockReplace = jest.fn();
 const mockPush = jest.fn();
 
@@ -63,7 +69,16 @@ jest.mock('@/services/StorageService', () => ({
 jest.mock('@/services/EncyclopediaService', () => ({
   EncyclopediaService: {
     getById: jest.fn(),
+    matchByName: jest.fn(() => null),
+    listAll: jest.fn(() => []),
   },
+}));
+
+// Autocomplete's location options come from the user's existing plants;
+// pin it to an empty list so the form renders deterministically without
+// touching native SQLite.
+jest.mock('@/hooks/usePlants', () => ({
+  usePlants: jest.fn(() => ({ plants: [], isLoading: false, error: undefined })),
 }));
 
 import * as ImagePicker from 'expo-image-picker';
@@ -121,6 +136,7 @@ describe('PlantFormScreen', () => {
         displayName: 'Fern in the den',
         speciesName: 'Boston fern',
         locationLabel: 'Den',
+        quantity: 1,
       });
     });
     await waitFor(() => {

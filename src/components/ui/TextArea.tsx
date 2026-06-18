@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from 'react-native';
 
-import { BorderRadius, FontSize, FontWeight, SemanticColors, Space } from '@/constants/theme';
+import { BorderRadius, Elevation, SemanticColors, Space, Typography } from '@/constants/theme';
 
 export interface TextAreaProps extends Omit<TextInputProps, 'style' | 'multiline'> {
   /** Visible label rendered above the field. */
@@ -31,9 +32,12 @@ export function TextArea({
   numberOfLines = 4,
   containerStyle,
   inputStyle,
+  onFocus,
+  onBlur,
   ...textInputProps
 }: TextAreaProps) {
   const hasError = !!error;
+  const [focused, setFocused] = useState(false);
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -47,7 +51,21 @@ export function TextArea({
         multiline
         numberOfLines={numberOfLines}
         textAlignVertical="top"
-        style={[styles.input, { minHeight: numberOfLines * 22 + Space.md }, hasError && styles.inputError, inputStyle]}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        style={[
+          styles.input,
+          { minHeight: numberOfLines * 22 + Space.md },
+          focused && !hasError && styles.inputFocused,
+          hasError && styles.inputError,
+          inputStyle,
+        ]}
       />
       <View style={styles.footer}>
         {hasError ? (
@@ -72,19 +90,22 @@ const styles = StyleSheet.create({
     gap: Space.xs,
   },
   label: {
-    fontSize: FontSize.sm,
-    fontWeight: FontWeight.medium,
+    ...Typography.label,
     color: SemanticColors.textPrimary,
   },
   input: {
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: SemanticColors.border,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
     paddingHorizontal: Space.md,
     paddingVertical: Space.sm,
-    fontSize: FontSize.md,
+    ...Typography.body,
     color: SemanticColors.textPrimary,
     backgroundColor: SemanticColors.surface,
+  },
+  inputFocused: {
+    borderColor: SemanticColors.primary,
+    ...Elevation.sm,
   },
   inputError: {
     borderColor: SemanticColors.error,
@@ -99,11 +120,11 @@ const styles = StyleSheet.create({
   },
   error: {
     flex: 1,
-    fontSize: FontSize.xs,
+    ...Typography.caption,
     color: SemanticColors.error,
   },
   counter: {
-    fontSize: FontSize.xs,
+    ...Typography.caption,
     color: SemanticColors.textSecondary,
   },
 });

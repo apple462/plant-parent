@@ -25,15 +25,18 @@
  * Requirements: 10.1, 10.2, 10.3, 10.4, 10.5
  */
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
+import { JungleBackground } from '@/components/JungleBackground';
 import { Button, Input } from '@/components/ui';
 import { ONBOARDING_COMPLETE, USER_NAME } from '@/constants/storageKeys';
 import {
     BorderRadius,
+    JungleGradientCard,
     Palette,
     SemanticColors,
     Space,
@@ -193,6 +196,7 @@ export default function OnboardingStepScreen() {
   };
 
   return (
+    <JungleBackground>
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Skip lives at the top and is present on every step (Req 10.5). */}
@@ -206,9 +210,19 @@ export default function OnboardingStepScreen() {
           />
         </View>
 
-        <View style={styles.content}>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}>
           <View style={styles.iconBadge}>
-            <Icon name={content.icon} size={72} color={SemanticColors.primary} />
+            <LinearGradient
+              colors={JungleGradientCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Icon name={content.icon} size={72} color={SemanticColors.onPrimary} />
           </View>
           <Text style={styles.title}>{content.title}</Text>
           <Text style={styles.body}>{content.body}</Text>
@@ -226,7 +240,7 @@ export default function OnboardingStepScreen() {
               containerStyle={styles.nameInput}
             />
           ) : null}
-        </View>
+        </ScrollView>
 
         <View style={styles.footer}>
           <View style={styles.dots} accessibilityRole="progressbar">
@@ -245,13 +259,14 @@ export default function OnboardingStepScreen() {
         </View>
       </View>
     </SafeAreaView>
+    </JungleBackground>
   );
 }
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: SemanticColors.surface,
+    backgroundColor: 'transparent',
   },
   container: {
     flex: 1,
@@ -266,17 +281,21 @@ const styles = StyleSheet.create({
     minHeight: 40,
     paddingHorizontal: Space.md,
   },
-  content: {
+  flex: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: Space.md,
+    paddingVertical: Space.lg,
   },
   iconBadge: {
     width: 128,
     height: 128,
     borderRadius: BorderRadius.full,
-    backgroundColor: SemanticColors.primaryMuted,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -33,13 +33,22 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { ErrorBanner } from '@/components/ui';
-import { ONBOARDING_COMPLETE } from '@/constants/storageKeys';
+import { ONBOARDING_COMPLETE, SESSION_ACTIVE } from '@/constants/storageKeys';
 import { useMigrationsHook } from '@/db';
 import { NotificationService } from '@/services/NotificationService';
 import { useUiStore } from '@/stores/uiStore';
 
 /** Resolution state for the first-launch onboarding gate. */
 type OnboardingGate = 'pending' | 'needs-onboarding' | 'complete';
+
+/**
+ * Resolution state for the local-only session lock (see Settings → Log out
+ * and `/login`). Any stored value other than the literal string `'false'` —
+ * including an absent key — resolves to `'logged-in'`, so existing users who
+ * completed onboarding before this feature shipped are never unexpectedly
+ * logged out.
+ */
+type SessionGate = 'pending' | 'logged-out' | 'logged-in';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -50,6 +59,9 @@ export default function RootLayout() {
 
   // First-launch onboarding gate (Req 10.1, 10.3).
   const [onboardingGate, setOnboardingGate] = useState<OnboardingGate>('pending');
+
+  // Local-only session lock gate (Settings → Log out).
+  const [sessionGate, setSessionGate] = useState<SessionGate>('pending');
 
   // Global error banner state (task 22.1 / Req 9.5). Driven by uiStore: any
   // service DB-write failure calls `setErrorBanner`, which surfaces here.
@@ -84,6 +96,27 @@ export default function RootLayout() {
     };
   }, []);
 
+  // Read the session-lock flag once. Only an explicit `'false'` means
+  // logged-out; an absent/unreadable value defaults to logged-in (see
+  // `SessionGate` doc comment above).
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(SESSION_ACTIVE)
+      .then((value) => {
+        if (!cancelled) {
+          setSessionGate(value === 'false' ? 'logged-out' : 'logged-in');
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSessionGate('logged-in');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const backgroundColor = theme.colors.background;
   const textColor = theme.colors.text;
 
@@ -103,8 +136,8 @@ export default function RootLayout() {
     );
   }
 
-  // Still migrating, or onboarding status not yet resolved — show a splash.
-  if (!migrationsSuccess || onboardingGate === 'pending') {
+  // Still migrating, or onboarding/session status not yet resolved — show a splash.
+  if (!migrationsSuccess || onboardingGate === 'pending' || sessionGate === 'pending') {
     return (
       <ThemeProvider value={theme}>
         <View style={[styles.centered, { backgroundColor }]}>
@@ -125,11 +158,16 @@ export default function RootLayout() {
           style={styles.banner}
         />
       ) : null}
-      {onboardingGate === 'needs-onboarding' ? <Redirect href="/onboarding/1" /> : null}
+      {onboardingGate === 'needs-onboarding' ? (
+        <Redirect href="/onboarding/1" />
+      ) : sessionGate === 'logged-out' ? (
+        <Redirect href="/login" />
+      ) : null}
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="plants" />
+        <Stack.Screen name="login" />
       </Stack>
     </ThemeProvider>
   );

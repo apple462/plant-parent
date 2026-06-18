@@ -7,6 +7,7 @@ export const plants = sqliteTable('plants', {
   speciesName: text('species_name'),              // optional
   locationLabel: text('location_label'),          // optional
   coverPhotoPath: text('cover_photo_path'),       // local file path or null
+  quantity:    integer('quantity').notNull().default(1), // how many physical plants this record represents
   createdAt:   integer('created_at').notNull(),   // Unix ms
   updatedAt:   integer('updated_at').notNull(),
   deletedAt:   integer('deleted_at'),             // soft-delete timestamp

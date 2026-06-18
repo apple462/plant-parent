@@ -30,6 +30,12 @@ import JournalEntryForm, {
 
 // --- Mocks -----------------------------------------------------------------
 
+// JungleBackground pulls in reanimated + expo-linear-gradient; render it as a
+// passthrough so the screen renders deterministically without native modules.
+jest.mock('@/components/JungleBackground', () => ({
+  JungleBackground: ({ children }: any) => children,
+}));
+
 // expo-router: stub the screen header, fix the route param, and capture
 // router.back so we can assert navigation (does / does not) happen.
 const mockBack = jest.fn();

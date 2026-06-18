@@ -1,0 +1,1 @@
+ALTER TABLE `plants` ADD `quantity` integer DEFAULT 1 NOT NULL;
