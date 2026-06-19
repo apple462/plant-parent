@@ -64,7 +64,7 @@ import {
     View,
 } from 'react-native';
 
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ErrorBanner, TextArea } from '@/components/ui';
 import {
@@ -268,7 +268,7 @@ export default function JournalEntryForm() {
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -367,7 +367,7 @@ export default function JournalEntryForm() {
         />
       </ScrollView>
     </KeyboardAvoidingView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

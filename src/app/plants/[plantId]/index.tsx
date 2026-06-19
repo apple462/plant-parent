@@ -65,7 +65,7 @@ import {
 } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
     Button,
@@ -89,7 +89,7 @@ import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedul
 import { usePlants } from '@/hooks/usePlants';
 import { type CareType } from '@/services/CareService';
 import { EncyclopediaService } from '@/services/EncyclopediaService';
-import { MAX_QUANTITY, MIN_QUANTITY, PlantService, type UpdatePlantInput } from '@/services/PlantService';
+import { MAX_QUANTITY, MIN_QUANTITY, PlantService, type PlantEnvironment, type UpdatePlantInput } from '@/services/PlantService';
 import { storageService } from '@/services/StorageService';
 import { useCareStore } from '@/stores/careStore';
 import { formatDDMMYYYY } from '@/utils/dateUtils';
@@ -207,6 +207,7 @@ export default function PlantProfileScreen() {
   const [editName, setEditName] = useState('');
   const [editSpecies, setEditSpecies] = useState('');
   const [editLocation, setEditLocation] = useState('');
+  const [editEnvironment, setEditEnvironment] = useState<PlantEnvironment>('outdoor');
   const [editQuantityText, setEditQuantityText] = useState('1');
   const [photoEdit, setPhotoEdit] = useState<PhotoEdit>({ kind: 'unchanged' });
   const [nameError, setNameError] = useState<string | null>(null);
@@ -231,19 +232,19 @@ export default function PlantProfileScreen() {
   // --- Loading / not-found -------------------------------------------------
   if (isLoading) {
     return (
-      <JungleBackground>
+      <WeatherBackground>
         <View style={styles.flex}>
           <Stack.Screen options={{ headerShown: false }} />
           <ScreenHeader title="Plant" onBack={() => router.back()} />
           <LoadingSpinner label="Loading plant…" />
         </View>
-      </JungleBackground>
+      </WeatherBackground>
     );
   }
 
   if (!plant) {
     return (
-      <JungleBackground>
+      <WeatherBackground>
         <View style={styles.flex}>
           <Stack.Screen options={{ headerShown: false }} />
           <ScreenHeader title="Plant" onBack={() => router.back()} />
@@ -255,7 +256,7 @@ export default function PlantProfileScreen() {
             <Button label="Back to Virtual Jungle" onPress={() => router.replace('/')} />
           </View>
         </View>
-      </JungleBackground>
+      </WeatherBackground>
     );
   }
 
@@ -267,6 +268,7 @@ export default function PlantProfileScreen() {
     setEditName(plant.displayName);
     setEditSpecies(plant.speciesName ?? '');
     setEditLocation(plant.locationLabel ?? '');
+    setEditEnvironment(plant.environment);
     setEditQuantityText(String(plant.quantity));
     setPhotoEdit({ kind: 'unchanged' });
     setNameError(null);
@@ -390,6 +392,7 @@ export default function PlantProfileScreen() {
         displayName: trimmedName,
         speciesName: trimmedSpecies.length > 0 ? trimmedSpecies : null,
         locationLabel: trimmedLocation.length > 0 ? trimmedLocation : null,
+        environment: editEnvironment,
         quantity: quantityValue,
       };
 
@@ -546,7 +549,7 @@ export default function PlantProfileScreen() {
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <View style={styles.flex}>
     <Stack.Screen options={{ headerShown: false }} />
     <ScreenHeader title={plant.displayName} onBack={() => router.back()} right={journalHeaderAction} />
@@ -642,6 +645,32 @@ export default function PlantProfileScreen() {
             maxLength={MAX_LABEL_LENGTH}
             autoCapitalize="sentences"
           />
+          <View style={styles.envField}>
+            <Text style={styles.envLabel}>Where does it live?</Text>
+            <View style={styles.segment}>
+              {(['outdoor', 'indoor'] as PlantEnvironment[]).map((opt) => {
+                const active = editEnvironment === opt;
+                return (
+                  <Pressable
+                    key={opt}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                    accessibilityLabel={opt === 'indoor' ? 'Indoor' : 'Outdoor'}
+                    onPress={() => setEditEnvironment(opt)}
+                    style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
+                    <Icon
+                      name={opt === 'indoor' ? 'home' : 'sun'}
+                      size={16}
+                      color={active ? SemanticColors.onPrimary : SemanticColors.textSecondary}
+                    />
+                    <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                      {opt === 'indoor' ? 'Indoor' : 'Outdoor'}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
           <Input
             label="How many plants?"
             value={editQuantityText}
@@ -690,6 +719,12 @@ export default function PlantProfileScreen() {
             ) : null}
             <View style={styles.fieldDivider} />
             <IdentityField icon="location" label="Location" value={plant.locationLabel ?? '—'} />
+            <View style={styles.fieldDivider} />
+            <IdentityField
+              icon={plant.environment === 'indoor' ? 'home' : 'sun'}
+              label="Environment"
+              value={plant.environment === 'indoor' ? 'Indoor' : 'Outdoor'}
+            />
             {lightRequirement ? (
               <>
                 <View style={styles.fieldDivider} />
@@ -853,7 +888,7 @@ export default function PlantProfileScreen() {
       ) : null}
     </ScrollView>
     </View>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 
@@ -1014,6 +1049,40 @@ const styles = StyleSheet.create({
   },
   editAction: {
     flex: 1,
+  },
+  envField: {
+    gap: Space.xs,
+  },
+  envLabel: {
+    ...Typography.label,
+    color: SemanticColors.textPrimary,
+  },
+  segment: {
+    flexDirection: 'row',
+    gap: Space.sm,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Space.xs,
+    minHeight: 44,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: SemanticColors.border,
+    backgroundColor: SemanticColors.surface,
+  },
+  segmentBtnActive: {
+    backgroundColor: SemanticColors.primary,
+    borderColor: SemanticColors.primary,
+  },
+  segmentText: {
+    ...Typography.bodyBold,
+    color: SemanticColors.textSecondary,
+  },
+  segmentTextActive: {
+    color: SemanticColors.onPrimary,
   },
   photoButtons: {
     flexDirection: 'row',

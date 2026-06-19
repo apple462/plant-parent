@@ -24,7 +24,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Input } from '@/components/ui';
 import {
@@ -56,7 +56,7 @@ export default function EncyclopediaListScreen() {
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
       <View style={styles.container}>
         <ScreenHeader title="Encyclopedia" />
         <View style={styles.searchRow}>
@@ -110,7 +110,7 @@ export default function EncyclopediaListScreen() {
           </View>
         )}
       </View>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

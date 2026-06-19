@@ -27,7 +27,7 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { db } from '../db';
 import { plants, type PlantRow } from '../db/schema';
-import type { Plant } from '../services/PlantService';
+import type { Plant, PlantEnvironment } from '../services/PlantService';
 
 /** Convert a nullable DB text column into an optional domain field. */
 function optional(value: string | null): string | undefined {
@@ -44,6 +44,7 @@ function toPlant(row: PlantRow): Plant {
     displayName: row.displayName,
     speciesName: optional(row.speciesName),
     locationLabel: optional(row.locationLabel),
+    environment: (row.environment as PlantEnvironment) ?? 'outdoor',
     coverPhotoPath: optional(row.coverPhotoPath),
     quantity: row.quantity,
     createdAt: new Date(row.createdAt),

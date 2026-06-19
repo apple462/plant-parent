@@ -7,6 +7,37 @@
 // component under test relies on gesture handlers.
 require('react-native-gesture-handler/jestSetup');
 
+// WeatherBackground (Req 12) pulls in react-native-reanimated via its animated
+// layers, whose worklets native part is unavailable under Jest. Screens use it
+// purely as a visual backdrop, so render it as a passthrough everywhere — tests
+// that specifically need weather state mock `@/stores/weatherStore` themselves.
+jest.mock('@/components/weather/WeatherBackground', () => ({
+  __esModule: true,
+  WeatherBackground: ({ children }) => children,
+  default: ({ children }) => children,
+}));
+
+// AsyncStorage's native module is unavailable under Jest and throws on import.
+// Use the library's official in-memory jest mock globally so any module that
+// imports it (e.g. the weather store) loads cleanly. Tests needing fine-grained
+// control override this with their own mock.
+jest.mock(
+  '@react-native-async-storage/async-storage',
+  () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+// expo-location has no JS fallback under Jest; stub the surface WeatherService
+// references so modules that transitively import it load cleanly. Tests that
+// exercise location/weather IO override this with their own mock.
+jest.mock('expo-location', () => ({
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+  Accuracy: { Balanced: 3 },
+  requestForegroundPermissionsAsync: jest.fn(async () => ({ status: 'granted' })),
+  getCurrentPositionAsync: jest.fn(async () => ({ coords: { latitude: 0, longitude: 0 } })),
+  reverseGeocodeAsync: jest.fn(async () => []),
+  geocodeAsync: jest.fn(async () => []),
+}));
+
 // react-native-safe-area-context's `useSafeAreaInsets` throws without a
 // `<SafeAreaProvider>` ancestor. Stub it with fixed zero insets so components
 // using it (e.g. ScreenHeader) render deterministically under Jest without

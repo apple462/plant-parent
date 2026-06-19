@@ -47,7 +47,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { LoadingSpinner } from '@/components/ui';
 import {
@@ -84,7 +84,7 @@ export default function CompareScreen() {
   }, [entries]);
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader title="Compare" onBack={() => router.back()} />
@@ -118,7 +118,7 @@ export default function CompareScreen() {
         />
       )}
     </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

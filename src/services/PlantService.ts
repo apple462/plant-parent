@@ -88,12 +88,21 @@ function defaultDatabase(): PlantDatabase {
   return cachedDefaultDb;
 }
 
+/**
+ * Where a plant lives. Outdoor plants are exposed to local weather, so the
+ * Weather_Service only adjusts their watering cadence; indoor plants are
+ * climate-controlled and ignored by weather adjustment (Req 12).
+ */
+export type PlantEnvironment = 'indoor' | 'outdoor';
+
 /** Domain representation of a plant (timestamps as `Date`). */
 export interface Plant {
   id: string;
   displayName: string;
   speciesName?: string;
   locationLabel?: string;
+  /** Indoor vs outdoor — gates weather-based care adjustment. Defaults to 'outdoor'. */
+  environment: PlantEnvironment;
   coverPhotoPath?: string;
   /**
    * How many physical plants this single record represents (e.g. buying 3 of
@@ -111,6 +120,8 @@ export interface CreatePlantInput {
   displayName: string;
   speciesName?: string;
   locationLabel?: string;
+  /** Indoor or outdoor. Defaults to 'outdoor' when omitted. */
+  environment?: PlantEnvironment;
   coverPhotoPath?: string;
   /** How many physical plants this record represents. Defaults to 1 when omitted. */
   quantity?: number;
@@ -125,6 +136,7 @@ export interface UpdatePlantInput {
   displayName?: string;
   speciesName?: string | null;
   locationLabel?: string | null;
+  environment?: PlantEnvironment;
   coverPhotoPath?: string | null;
   quantity?: number;
 }
@@ -166,6 +178,7 @@ function toPlant(row: PlantRow): Plant {
     displayName: row.displayName,
     speciesName: optional(row.speciesName),
     locationLabel: optional(row.locationLabel),
+    environment: (row.environment as PlantEnvironment) ?? 'outdoor',
     coverPhotoPath: optional(row.coverPhotoPath),
     quantity: row.quantity,
     createdAt: new Date(row.createdAt),
@@ -214,6 +227,7 @@ export async function createPlant(
     displayName: input.displayName,
     speciesName: input.speciesName ?? null,
     locationLabel: input.locationLabel ?? null,
+    environment: input.environment ?? 'outdoor',
     coverPhotoPath: input.coverPhotoPath ?? null,
     quantity,
     createdAt: now,
@@ -270,6 +284,10 @@ export async function updatePlant(
 
   if ('locationLabel' in input) {
     changes.locationLabel = input.locationLabel ?? null;
+  }
+
+  if ('environment' in input && input.environment !== undefined) {
+    changes.environment = input.environment;
   }
 
   if ('coverPhotoPath' in input) {

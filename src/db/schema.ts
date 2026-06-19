@@ -6,6 +6,7 @@ export const plants = sqliteTable('plants', {
   displayName: text('display_name').notNull(),    // 1–100 chars
   speciesName: text('species_name'),              // optional
   locationLabel: text('location_label'),          // optional
+  environment: text('environment').notNull().default('outdoor'), // 'indoor' | 'outdoor' — gates weather-based care adjustment
   coverPhotoPath: text('cover_photo_path'),       // local file path or null
   quantity:    integer('quantity').notNull().default(1), // how many physical plants this record represents
   createdAt:   integer('created_at').notNull(),   // Unix ms

@@ -46,8 +46,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Image,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -57,7 +59,7 @@ import {
 } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Autocomplete, Button, ErrorBanner, Input } from '@/components/ui';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
@@ -72,7 +74,11 @@ import {
 import { usePlants } from '@/hooks/usePlants';
 import { CareService, MAX_INTERVAL_DAYS, MIN_INTERVAL_DAYS, type CareType } from '@/services/CareService';
 import { EncyclopediaService } from '@/services/EncyclopediaService';
-import { MAX_QUANTITY, MIN_QUANTITY, PlantService } from '@/services/PlantService';
+import {
+    PlantIdentifierService,
+    type PlantMatch,
+} from '@/services/PlantIdentifierService';
+import { MAX_QUANTITY, MIN_QUANTITY, PlantService, type PlantEnvironment } from '@/services/PlantService';
 import { storageService } from '@/services/StorageService';
 import { validateDisplayName, validatePhoto } from '@/utils/validation';
 
@@ -190,6 +196,8 @@ export default function PlantFormScreen() {
   const [displayName, setDisplayName] = useState('');
   const [speciesName, setSpeciesName] = useState(prefillSpecies?.commonName ?? '');
   const [locationLabel, setLocationLabel] = useState('');
+  // Indoor vs outdoor — outdoor plants get weather-adjusted watering (Req 12).
+  const [environment, setEnvironment] = useState<PlantEnvironment>('outdoor');
   // How many physical plants this one record represents (e.g. 3 of the same
   // Snake Plant share a single profile and care schedule instead of needing
   // 3 separate entries).
@@ -238,6 +246,12 @@ export default function PlantFormScreen() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // Plant identifier (Req 11): in-flight flag, ranked matches for the results
+  // modal, and the manual-fallback message shown on failure.
+  const [identifying, setIdentifying] = useState(false);
+  const [identifyMatches, setIdentifyMatches] = useState<PlantMatch[] | null>(null);
+  const [identifyError, setIdentifyError] = useState<string | null>(null);
+
   /** Validate and attach an asset returned by the picker (Req 1.9). */
   function attachAsset(asset: ImagePicker.ImagePickerAsset) {
     const filename = deriveFilename(asset.fileName, asset.uri);
@@ -283,6 +297,48 @@ export default function PlantFormScreen() {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       attachAsset(result.assets[0]);
     }
+  }
+
+  /**
+   * Identify the plant from a chosen photo (Req 11). Picks a library image,
+   * also attaches it as the cover photo, then calls the identifier and opens
+   * the results modal. Any failure surfaces the manual-fallback message and
+   * leaves the species field open for typing (Req 11.4).
+   */
+  async function handleIdentify() {
+    setIdentifyError(null);
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      setIdentifyError('Photo library permission is required to identify a plant.');
+      return;
+    }
+    const picked = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
+    if (picked.canceled || !picked.assets || picked.assets.length === 0) {
+      return;
+    }
+    const asset = picked.assets[0];
+    // Reuse the chosen photo as the cover (it's a photo of this plant).
+    attachAsset(asset);
+
+    setIdentifying(true);
+    try {
+      const matches = await PlantIdentifierService.identifyPlant(asset.uri);
+      setIdentifyMatches(matches);
+    } catch (error) {
+      setIdentifyError(
+        error instanceof Error
+          ? error.message
+          : 'Could not identify plant. Please enter the species manually.',
+      );
+    } finally {
+      setIdentifying(false);
+    }
+  }
+
+  /** Apply a selected identification match: pre-fill the species field (Req 11.3). */
+  function handleSelectMatch(match: PlantMatch) {
+    setSpeciesName(match.commonName);
+    setIdentifyMatches(null);
   }
 
   function handleRemovePhoto() {
@@ -353,6 +409,7 @@ export default function PlantFormScreen() {
         displayName: displayName.trim(),
         speciesName: trimmedSpecies.length > 0 ? trimmedSpecies : undefined,
         locationLabel: trimmedLocation.length > 0 ? trimmedLocation : undefined,
+        environment,
         quantity: Number.parseInt(quantityText.trim(), 10),
       });
 
@@ -389,7 +446,7 @@ export default function PlantFormScreen() {
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -403,23 +460,41 @@ export default function PlantFormScreen() {
         ) : null}
 
         {/*
-          Future-phase plant identifier (Req 11.1). Gated entirely behind
-          FEATURE_FLAGS.PLANT_IDENTIFIER_ENABLED — when false (MVP default) the
-          entry point is not mounted at all. This is a NO-OP stub; the actual
-          image-recognition flow is implemented in a later phase.
+          Plant identifier (Req 11). Gated behind FEATURE_FLAGS.PLANT_IDENTIFIER_ENABLED.
+          Picks a photo, sends it to PlantNet, and opens a ranked-results modal;
+          selecting a match pre-fills the species (and, via the species-match
+          effect above, its encyclopedia care defaults). Failures fall back to
+          manual species entry (Req 11.4).
         */}
         {FEATURE_FLAGS.PLANT_IDENTIFIER_ENABLED ? (
-          <Pressable
-            testID="identify-plant-button"
-            accessibilityRole="button"
-            accessibilityLabel="Identify Plant"
-            onPress={() => {
-              // TODO(future-phase): launch the image-recognition identifier (Req 11).
-            }}
-            style={({ pressed }) => [styles.identifyButton, pressed && styles.pressed]}>
-            <Icon name="camera" size={16} color={SemanticColors.primary} />
-            <Text style={styles.identifyButtonText}>Identify Plant</Text>
-          </Pressable>
+          <>
+            <Pressable
+              testID="identify-plant-button"
+              accessibilityRole="button"
+              accessibilityLabel="Identify Plant"
+              accessibilityState={{ disabled: identifying, busy: identifying }}
+              disabled={identifying}
+              onPress={() => {
+                void handleIdentify();
+              }}
+              style={({ pressed }) => [
+                styles.identifyButton,
+                pressed && styles.pressed,
+                identifying && styles.identifyButtonBusy,
+              ]}>
+              {identifying ? (
+                <ActivityIndicator size="small" color={SemanticColors.primary} />
+              ) : (
+                <Icon name="camera" size={16} color={SemanticColors.primary} />
+              )}
+              <Text style={styles.identifyButtonText}>
+                {identifying ? 'Identifying…' : 'Identify Plant'}
+              </Text>
+            </Pressable>
+            {identifyError ? (
+              <ErrorBanner message={identifyError} onDismiss={() => setIdentifyError(null)} />
+            ) : null}
+          </>
         ) : null}
 
         <Input
@@ -462,6 +537,36 @@ export default function PlantFormScreen() {
           maxLength={MAX_LABEL_LENGTH}
           autoCapitalize="sentences"
         />
+
+        <View style={styles.envField}>
+          <Text style={styles.envLabel}>Where does it live?</Text>
+          <View style={styles.segment}>
+            {(['outdoor', 'indoor'] as PlantEnvironment[]).map((opt) => {
+              const active = environment === opt;
+              return (
+                <Pressable
+                  key={opt}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={opt === 'indoor' ? 'Indoor' : 'Outdoor'}
+                  onPress={() => setEnvironment(opt)}
+                  style={[styles.segmentBtn, active && styles.segmentBtnActive]}>
+                  <Icon
+                    name={opt === 'indoor' ? 'home' : 'sun'}
+                    size={16}
+                    color={active ? SemanticColors.onPrimary : SemanticColors.textSecondary}
+                  />
+                  <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                    {opt === 'indoor' ? 'Indoor' : 'Outdoor'}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.envHint}>
+            Outdoor plants get watering tips tuned to your local weather.
+          </Text>
+        </View>
 
         <View>
           <Input
@@ -563,8 +668,53 @@ export default function PlantFormScreen() {
           style={styles.submit}
         />
       </ScrollView>
+
+      {/* Identification results (Req 11.2/11.3): ranked matches with confidence. */}
+      <Modal
+        visible={identifyMatches !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIdentifyMatches(null)}>
+        <Pressable
+          style={styles.identifyBackdrop}
+          accessibilityLabel="Dismiss"
+          onPress={() => setIdentifyMatches(null)}>
+          <Pressable style={styles.identifyCard} onPress={() => {}}>
+            <Text style={styles.identifyTitle}>Is your plant one of these?</Text>
+            <Text style={styles.identifySubtitle}>
+              Tap a match to fill in the species, or close to type it yourself.
+            </Text>
+            {(identifyMatches ?? []).map((match) => (
+              <Pressable
+                key={match.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${match.commonName}, ${match.confidence}% match`}
+                onPress={() => handleSelectMatch(match)}
+                style={({ pressed }) => [styles.matchRow, pressed && styles.pressed]}>
+                <View style={styles.matchText}>
+                  <Text style={styles.matchCommon} numberOfLines={1}>
+                    {match.commonName}
+                  </Text>
+                  <Text style={styles.matchScientific} numberOfLines={1}>
+                    {match.scientificName}
+                  </Text>
+                </View>
+                <View style={styles.matchConfidence}>
+                  <Text style={styles.matchConfidenceText}>{match.confidence}%</Text>
+                </View>
+              </Pressable>
+            ))}
+            <Button
+              label="None of these"
+              variant="secondary"
+              onPress={() => setIdentifyMatches(null)}
+              style={styles.matchDismiss}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </KeyboardAvoidingView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 
@@ -599,6 +749,44 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: SemanticColors.textSecondary,
     marginTop: Space.xs,
+  },
+  envField: {
+    gap: Space.xs,
+  },
+  envLabel: {
+    ...Typography.label,
+    color: SemanticColors.textPrimary,
+  },
+  segment: {
+    flexDirection: 'row',
+    gap: Space.sm,
+  },
+  segmentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Space.xs,
+    minHeight: 44,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1.5,
+    borderColor: SemanticColors.border,
+    backgroundColor: SemanticColors.surface,
+  },
+  segmentBtnActive: {
+    backgroundColor: SemanticColors.primary,
+    borderColor: SemanticColors.primary,
+  },
+  segmentText: {
+    ...Typography.bodyBold,
+    color: SemanticColors.textSecondary,
+  },
+  segmentTextActive: {
+    color: SemanticColors.onPrimary,
+  },
+  envHint: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
   },
   sectionLabel: {
     ...Typography.bodyBold,
@@ -642,9 +830,69 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
     backgroundColor: SemanticColors.primaryMuted,
   },
+  identifyButtonBusy: {
+    opacity: 0.8,
+  },
   identifyButtonText: {
     ...Typography.bodyBold,
     color: SemanticColors.primary,
+  },
+  identifyBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    padding: Space.lg,
+  },
+  identifyCard: {
+    backgroundColor: SemanticColors.surface,
+    borderRadius: BorderRadius.xl,
+    padding: Space.lg,
+    gap: Space.sm,
+  },
+  identifyTitle: {
+    ...Typography.subtitle,
+    color: SemanticColors.textPrimary,
+  },
+  identifySubtitle: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
+    marginBottom: Space.xs,
+  },
+  matchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+    paddingVertical: Space.sm,
+    paddingHorizontal: Space.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: SemanticColors.surfaceMuted,
+  },
+  matchText: {
+    flex: 1,
+    gap: 2,
+  },
+  matchCommon: {
+    ...Typography.bodyBold,
+    color: SemanticColors.textPrimary,
+  },
+  matchScientific: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
+    fontStyle: 'italic',
+  },
+  matchConfidence: {
+    paddingVertical: Space.xs,
+    paddingHorizontal: Space.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: SemanticColors.primaryMuted,
+  },
+  matchConfidenceText: {
+    ...Typography.label,
+    color: SemanticColors.primary,
+  },
+  matchDismiss: {
+    marginTop: Space.xs,
+    alignSelf: 'stretch',
   },
   removeBtnText: {
     ...Typography.caption,

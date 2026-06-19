@@ -33,10 +33,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
 
 import { ErrorBanner } from '@/components/ui';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { ONBOARDING_COMPLETE, SESSION_ACTIVE } from '@/constants/storageKeys';
 import { useMigrationsHook } from '@/db';
 import { NotificationService } from '@/services/NotificationService';
 import { useUiStore } from '@/stores/uiStore';
+import { useWeatherStore } from '@/stores/weatherStore';
 
 /** Resolution state for the first-launch onboarding gate. */
 type OnboardingGate = 'pending' | 'needs-onboarding' | 'complete';
@@ -74,6 +76,14 @@ export default function RootLayout() {
     void NotificationService.requestPermissions().catch(() => {
       // Intentionally ignored — permission state does not gate the app.
     });
+  }, []);
+
+  // Hydrate weather state on mount (Req 12). Fire-and-forget and fully
+  // fail-soft inside the store — a missing location or failed fetch just leaves
+  // the app in its default (weather-agnostic) look and never blocks the UI.
+  useEffect(() => {
+    if (!FEATURE_FLAGS.WEATHER_SERVICE_ENABLED) return;
+    void useWeatherStore.getState().loadWeather();
   }, []);
 
   // Read the onboarding-complete flag once. A read failure is treated as

@@ -39,6 +39,8 @@
  * Requirements: 3.1, 3.2, 3.4, 3.5, 3.6, 3.7, 3.8, 4.1, 4.2, 4.4, 4.5, 4.6,
  * 4.7, 5.1, 5.2, 5.4, 5.5, 5.6, 5.7
  */
+import { eq } from 'drizzle-orm';
+import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -50,9 +52,10 @@ import {
     View,
 } from 'react-native';
 
-import { JungleBackground } from '@/components/JungleBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ErrorBanner, Input } from '@/components/ui';
+import { Icon } from '@/components/Icon';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import {
     BorderRadius,
     Elevation,
@@ -63,6 +66,9 @@ import {
     Typography,
 } from '@/constants/theme';
 import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
+import { useWeatherAdjustedCare } from '@/hooks/useWeatherAdjustedCare';
+import { db } from '@/db';
+import { plants } from '@/db/schema';
 import {
     DEFAULT_PREFERRED_HOUR,
     DEFAULT_PREFERRED_MINUTE,
@@ -135,6 +141,7 @@ export default function CareScreen() {
   const [savingType, setSavingType] = useState<CareType | null>(null);
   const [completingType, setCompletingType] = useState<CareType | null>(null);
   const [permissionGranted, setPermissionGranted] = useState<boolean>(true);
+  const [applyingWeather, setApplyingWeather] = useState(false);
 
   /** Map each existing schedule by its care type for quick lookup. */
   const byType = useMemo(() => {
@@ -144,6 +151,20 @@ export default function CareScreen() {
     }
     return map;
   }, [schedules]);
+
+  // Weather-adjusted watering recommendation (Req 12). Derived from the saved
+  // watering interval + the app-wide weather; `null` when weather is
+  // unavailable or the user disabled adjustment, so the base schedule shows
+  // unchanged. We never auto-apply — the user taps "Apply" below (Req 12.4).
+  const wateringSchedule = byType.watering?.schedule;
+  const weatherAdjusted = useWeatherAdjustedCare(wateringSchedule?.intervalDays);
+
+  // Weather only adjusts OUTDOOR plants — indoor plants are climate-controlled
+  // (Req 12). Read this plant's environment reactively; default outdoor.
+  const plantEnvQuery = useLiveQuery(
+    db.select({ environment: plants.environment }).from(plants).where(eq(plants.id, plantId)),
+  );
+  const isOutdoor = (plantEnvQuery.data?.[0]?.environment ?? 'outdoor') === 'outdoor';
 
   // Re-seed local form state from persisted values whenever the persisted
   // interval / reminderEnabled for an existing schedule changes (i.e. after the
@@ -260,8 +281,26 @@ export default function CareScreen() {
     [byType, recordCompletion],
   );
 
+  // Apply the weather-adjusted watering interval to the saved schedule (the
+  // explicit one-tap commit — Req 12.4). Reuses saveSchedule so the reminder
+  // and next-due date are recomputed exactly as a manual edit would.
+  const handleApplyWeather = useCallback(async () => {
+    if (!weatherAdjusted || !wateringSchedule) return;
+    setApplyingWeather(true);
+    try {
+      await saveSchedule(plantId, 'watering', {
+        intervalDays: weatherAdjusted.adjustedInterval,
+        reminderEnabled: wateringSchedule.reminderEnabled,
+        preferredHour: wateringSchedule.preferredHour,
+        preferredMinute: wateringSchedule.preferredMinute,
+      });
+    } finally {
+      setApplyingWeather(false);
+    }
+  }, [weatherAdjusted, wateringSchedule, saveSchedule, plantId]);
+
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <View style={styles.screen}>
     <ScreenHeader title="Care Schedule" onBack={() => router.back()} />
     <ScrollView
@@ -348,6 +387,34 @@ export default function CareScreen() {
               </View>
             </View>
 
+            {type === 'watering' && isOutdoor && weatherAdjusted?.changed ? (
+              <View style={styles.weatherChip}>
+                <Icon name="sun" size={18} color={SemanticColors.warning} />
+                <View style={styles.weatherChipTextGroup}>
+                  <Text style={styles.weatherChipTitle}>
+                    Weather-adjusted: every {weatherAdjusted.adjustedInterval}{' '}
+                    {weatherAdjusted.adjustedInterval === 1 ? 'day' : 'days'}
+                  </Text>
+                  <Text style={styles.weatherChipBody}>
+                    Your local forecast suggests watering more{' '}
+                    {weatherAdjusted.factor > 1 ? 'often' : 'sparingly'} than your set{' '}
+                    {weatherAdjusted.baseInterval}-day cadence.
+                  </Text>
+                </View>
+                <Button
+                  label="Apply"
+                  variant="secondary"
+                  loading={applyingWeather}
+                  disabled={applyingWeather || isLoading}
+                  onPress={() => {
+                    void handleApplyWeather();
+                  }}
+                  accessibilityLabel={`Apply weather-adjusted watering of every ${weatherAdjusted.adjustedInterval} days`}
+                  style={styles.weatherChipButton}
+                />
+              </View>
+            ) : null}
+
             <View style={styles.actions}>
               {status ? (
                 <Button
@@ -375,7 +442,7 @@ export default function CareScreen() {
       })}
     </ScrollView>
     </View>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 
@@ -464,5 +531,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: Space.sm,
+  },
+  weatherChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+    padding: Space.sm,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: SemanticColors.warningMuted,
+  },
+  weatherChipTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  weatherChipTitle: {
+    ...Typography.bodyBold,
+    color: SemanticColors.textPrimary,
+  },
+  weatherChipBody: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
+  },
+  weatherChipButton: {
+    minHeight: 36,
+    paddingHorizontal: Space.md,
+    paddingVertical: Space.xs,
   },
 });

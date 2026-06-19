@@ -27,3 +27,35 @@ export const USER_NAME = 'user_name';
  * lock the user can re-enter with one tap.
  */
 export const SESSION_ACTIVE = 'session_active';
+
+/* -------------------------------------------------------------------------- */
+/* Weather_Service keys (Req 12)                                              */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Saved jungle location, stored as JSON `WeatherLocation`
+ * (`{lat, lon, label, source, updatedAt}`). Absent until the user sets a
+ * location in Settings; when absent the weather feature stays dormant and the
+ * app shows its default look.
+ */
+export const WEATHER_LOCATION = 'weather_location';
+
+/**
+ * Cached weather payload, stored as JSON `{ lat, lon, data: WeatherData }`.
+ * Refreshed at most once per calendar day per location (Req 12.1); used as the
+ * offline/failure fallback (Req 12.5).
+ */
+export const WEATHER_CACHE = 'weather_cache';
+
+/**
+ * Whether weather-adjusted watering recommendations are surfaced. Stored as
+ * `'true'` / `'false'`; defaults to enabled when unset.
+ */
+export const WEATHER_ADJUST_ENABLED = 'weather_adjust_enabled';
+
+/**
+ * Whether animated weather backgrounds are enabled. Stored as `'true'` /
+ * `'false'`; defaults to enabled when unset. (Reduce-Motion always overrides
+ * this to a static backdrop regardless of the stored value.)
+ */
+export const WEATHER_ANIMATIONS_ENABLED = 'weather_animations_enabled';

@@ -9,8 +9,8 @@
  * - SUPABASE_SYNC_ENABLED    — gates cross-device sync via Supabase (future phase).
  */
 export const FEATURE_FLAGS = {
-  PLANT_IDENTIFIER_ENABLED: false, // Req 11
-  WEATHER_SERVICE_ENABLED: false, // Req 12
+  PLANT_IDENTIFIER_ENABLED: true, // Req 11 — photo → species identification
+  WEATHER_SERVICE_ENABLED: true, // Req 12 — weather-aware care + theming
   SUPABASE_SYNC_ENABLED: false, // Future
 } as const;
 

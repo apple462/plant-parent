@@ -27,7 +27,7 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { Button, Input } from '@/components/ui';
 import { SESSION_ACTIVE, USER_NAME } from '@/constants/storageKeys';
 import {
@@ -98,7 +98,7 @@ export default function LoginScreen() {
   const showNameForm = loaded && (storedName === null || editingName);
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
       <SafeAreaView style={styles.safeArea}>
         <ScrollView
           style={styles.flex}
@@ -164,7 +164,7 @@ export default function LoginScreen() {
           )}
         </ScrollView>
       </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

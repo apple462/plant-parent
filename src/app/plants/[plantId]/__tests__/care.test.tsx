@@ -76,7 +76,19 @@ jest.mock('@/services/NotificationService', () => ({
 
 // Prevent the real CareService (imported for the pure validateInterval +
 // MIN/MAX constants) from opening native sqlite when it imports `../db`.
-jest.mock('@/db', () => ({ db: {} }));
+// `db.select(...).from(...).where(...)` is also evaluated by the screen's
+// plant-environment live query, so the stub must be chainable.
+jest.mock('@/db', () => {
+  const chain = { from: () => ({ where: () => ({}) }) };
+  return { db: { select: () => chain } };
+});
+
+// The screen reads the plant's indoor/outdoor environment via a Drizzle live
+// query; mock it to a stable outdoor result so the weather chip gating renders.
+jest.mock('drizzle-orm/expo-sqlite', () => ({
+  __esModule: true,
+  useLiveQuery: () => ({ data: [{ environment: 'outdoor' }], error: undefined, updatedAt: 1 }),
+}));
 
 import CareScreen from '@/app/plants/[plantId]/care';
 

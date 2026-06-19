@@ -165,6 +165,7 @@ jest.mock('@/components/ui', () => {
 
 import PlantFormScreen from '@/app/plants/new';
 import { usePlants } from '@/hooks/usePlants';
+import { useWeatherStore } from '@/stores/weatherStore';
 
 import VirtualJungleScreen from '../(tabs)/index';
 
@@ -185,6 +186,7 @@ beforeEach(() => {
       {
         id: 'p1',
         displayName: 'Fern',
+        environment: 'outdoor',
         quantity: 1,
         createdAt: new Date('2024-01-01T00:00:00Z'),
         updatedAt: new Date('2024-01-01T00:00:00Z'),
@@ -216,21 +218,56 @@ describe('PlantFormScreen — Identify Plant gating (Req 11.1)', () => {
 });
 
 describe('VirtualJungle — weather advisory gating (Req 12.1)', () => {
-  it('does NOT render the weather advisory banner when WEATHER_SERVICE_ENABLED is false', async () => {
-    flags.WEATHER_SERVICE_ENABLED = false;
+  // A forecast whose first day has heavy rain (≥5 mm) so the advisory applies.
+  const rainyWeather = {
+    condition: 'rain' as const,
+    fetchedAt: Date.now(),
+    current: { temperature: 22, humidity: 80, precipitation: 4, weatherCode: 61, condition: 'rain' as const },
+    daily: [
+      {
+        date: '2026-06-19',
+        tempMax: 24,
+        tempMin: 18,
+        precipitationSum: 12,
+        precipitationProbability: 90,
+        humidity: 85,
+        weatherCode: 61,
+        condition: 'rain' as const,
+      },
+    ],
+  };
 
-    const { queryByTestId, queryByText } = await render(<VirtualJungleScreen />);
-
-    expect(queryByTestId('weather-advisory-banner')).toBeNull();
-    expect(queryByText('Weather advisory')).toBeNull();
+  afterEach(() => {
+    // Reset weather state so it never leaks between tests.
+    useWeatherStore.setState({ weather: null, condition: null });
   });
 
-  it('renders the weather advisory banner when WEATHER_SERVICE_ENABLED is true', async () => {
+  it('does NOT render the weather advisory banner when WEATHER_SERVICE_ENABLED is false', async () => {
+    flags.WEATHER_SERVICE_ENABLED = false;
+    useWeatherStore.setState({ weather: rainyWeather, condition: 'rain' });
+
+    const { queryByTestId } = await render(<VirtualJungleScreen />);
+
+    // The advisory is not even mounted when the feature flag is off.
+    expect(queryByTestId('weather-advisory-banner')).toBeNull();
+  });
+
+  it('renders a weather advisory when WEATHER_SERVICE_ENABLED is true and the forecast warrants it', async () => {
     flags.WEATHER_SERVICE_ENABLED = true;
+    useWeatherStore.setState({ weather: rainyWeather, condition: 'rain' });
 
-    const { getByTestId, getByText } = await render(<VirtualJungleScreen />);
+    const { findByTestId, findByText } = await render(<VirtualJungleScreen />);
 
-    expect(getByTestId('weather-advisory-banner')).toBeTruthy();
-    expect(getByText('Weather advisory')).toBeTruthy();
+    expect(await findByTestId('weather-advisory-banner')).toBeTruthy();
+    expect(await findByText(/Recent rainfall detected/)).toBeTruthy();
+  });
+
+  it('does NOT render an advisory when enabled but there is no weather data (Req 12.5)', async () => {
+    flags.WEATHER_SERVICE_ENABLED = true;
+    useWeatherStore.setState({ weather: null, condition: null });
+
+    const { queryByTestId } = await render(<VirtualJungleScreen />);
+
+    expect(queryByTestId('weather-advisory-banner')).toBeNull();
   });
 });

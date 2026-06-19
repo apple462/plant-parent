@@ -31,7 +31,7 @@ import { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { Button, Input } from '@/components/ui';
 import { ONBOARDING_COMPLETE, USER_NAME } from '@/constants/storageKeys';
 import {
@@ -196,7 +196,7 @@ export default function OnboardingStepScreen() {
   };
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Skip lives at the top and is present on every step (Req 10.5). */}
@@ -259,7 +259,7 @@ export default function OnboardingStepScreen() {
         </View>
       </View>
     </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

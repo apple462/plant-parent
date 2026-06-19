@@ -136,6 +136,7 @@ describe('PlantFormScreen', () => {
         displayName: 'Fern in the den',
         speciesName: 'Boston fern',
         locationLabel: 'Den',
+        environment: 'outdoor',
         quantity: 1,
       });
     });

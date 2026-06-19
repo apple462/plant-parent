@@ -27,7 +27,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { SymptomChecker } from '@/components/SymptomChecker';
 import { Button, Toast, type ToastVariant } from '@/components/ui';
@@ -97,7 +97,7 @@ export default function SymptomCheckerScreen() {
   const isInconclusive = diagnosis !== null && !diagnosis.conclusive;
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <View style={styles.screen}>
     <ScreenHeader title="Symptom Checker" onBack={() => router.back()} />
     <ScrollView
@@ -154,7 +154,7 @@ export default function SymptomCheckerScreen() {
       ) : null}
     </ScrollView>
     </View>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

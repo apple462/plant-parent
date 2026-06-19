@@ -38,13 +38,15 @@ import * as Notifications from 'expo-notifications';
 import { PermissionStatus } from 'expo-notifications';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ConfirmationDialog, Input, Toast } from '@/components/ui';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
+import { FEATURE_FLAGS } from '@/constants/featureFlags';
+import { useWeatherStore } from '@/stores/weatherStore';
 import {
     PREFERRED_REMINDER_HOUR,
     PREFERRED_REMINDER_MINUTE,
@@ -53,6 +55,7 @@ import {
 import {
     BorderRadius,
     Elevation,
+    Palette,
     SemanticColors,
     Space,
     TabBarClearance,
@@ -228,7 +231,7 @@ export default function SettingsScreen() {
   const isDenied = permissionStatus === PermissionStatus.DENIED;
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <SafeAreaView style={styles.container} edges={[]}>
       <ScreenHeader title="Settings" />
       <ScrollView contentContainerStyle={styles.content}>
@@ -311,6 +314,11 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
+        {/* Weather / Location ------------------------------------------- */}
+        {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? (
+          <WeatherLocationCard onToast={setToast} />
+        ) : null}
+
         {/* About -------------------------------------------------------- */}
         <View style={styles.card}>
           <View style={styles.sectionHeader}>
@@ -372,7 +380,149 @@ export default function SettingsScreen() {
         }}
       />
     </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
+  );
+}
+
+/**
+ * Location & weather preferences card (Req 12). Lets the user set their
+ * jungle's location by GPS or city search, clear it, and toggle the
+ * weather-adjusted watering recommendations / animated backgrounds. All actions
+ * are fail-soft via the weatherStore; results surface through the parent toast.
+ */
+function WeatherLocationCard({ onToast }: { onToast: (message: string) => void }) {
+  const location = useWeatherStore((s) => s.location);
+  const isLoading = useWeatherStore((s) => s.isLoading);
+  const adjustEnabled = useWeatherStore((s) => s.adjustEnabled);
+  const animationsEnabled = useWeatherStore((s) => s.animationsEnabled);
+  const setLocationFromGps = useWeatherStore((s) => s.setLocationFromGps);
+  const setLocationFromCity = useWeatherStore((s) => s.setLocationFromCity);
+  const clearLocation = useWeatherStore((s) => s.clearLocation);
+  const setAdjustEnabled = useWeatherStore((s) => s.setAdjustEnabled);
+  const setAnimationsEnabled = useWeatherStore((s) => s.setAnimationsEnabled);
+
+  const [cityText, setCityText] = useState('');
+  const [busy, setBusy] = useState<'gps' | 'city' | null>(null);
+
+  const handleGps = useCallback(async () => {
+    setBusy('gps');
+    const result = await setLocationFromGps();
+    setBusy(null);
+    onToast(result.ok ? `Location set to ${result.message}` : result.message ?? 'Could not get location.');
+  }, [setLocationFromGps, onToast]);
+
+  const handleCity = useCallback(async () => {
+    if (!cityText.trim()) return;
+    setBusy('city');
+    const result = await setLocationFromCity(cityText);
+    setBusy(null);
+    if (result.ok) {
+      setCityText('');
+      onToast(`Location set to ${result.message}`);
+    } else {
+      onToast(result.message ?? 'Could not find that place.');
+    }
+  }, [cityText, setLocationFromCity, onToast]);
+
+  const handleClear = useCallback(async () => {
+    await clearLocation();
+    onToast('Location cleared');
+  }, [clearLocation, onToast]);
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.sectionHeader}>
+        <Icon name="location" size={20} color={SemanticColors.primary} />
+        <Text style={styles.sectionTitle}>Location</Text>
+      </View>
+      <Text style={styles.sectionBody}>
+        Set this to where your jungle actually lives so weather-based watering
+        suggestions match your plants.
+      </Text>
+
+      <View style={styles.statusRow}>
+        <Text style={styles.statusLabel}>Current</Text>
+        <Text style={[styles.statusValue, styles.locationValue]} numberOfLines={1}>
+          {location ? location.label : 'Not set'}
+        </Text>
+      </View>
+
+      <Button
+        label="Use my current location"
+        icon="location"
+        onPress={() => {
+          void handleGps();
+        }}
+        loading={busy === 'gps'}
+        disabled={isLoading}
+        style={styles.saveButton}
+      />
+
+      <Input
+        label="Or search a city / area"
+        value={cityText}
+        onChangeText={setCityText}
+        placeholder="e.g. Nagpur"
+        autoCapitalize="words"
+        returnKeyType="search"
+        onSubmitEditing={() => {
+          void handleCity();
+        }}
+      />
+      <Button
+        label="Search"
+        variant="secondary"
+        onPress={() => {
+          void handleCity();
+        }}
+        loading={busy === 'city'}
+        disabled={isLoading || cityText.trim().length === 0}
+        style={styles.saveButton}
+      />
+
+      {location ? (
+        <Text
+          accessibilityRole="button"
+          onPress={() => {
+            void handleClear();
+          }}
+          style={styles.clearLink}>
+          Clear location
+        </Text>
+      ) : null}
+
+      <View style={styles.divider} />
+
+      <View style={styles.weatherToggleRow}>
+        <View style={styles.weatherToggleText}>
+          <Text style={styles.statusLabel}>Weather-adjusted watering</Text>
+          <Text style={styles.toggleHint}>Show watering suggestions tuned to the forecast.</Text>
+        </View>
+        <Switch
+          accessibilityLabel="Weather-adjusted watering"
+          value={adjustEnabled}
+          onValueChange={(v) => {
+            void setAdjustEnabled(v);
+          }}
+          trackColor={{ false: Palette.neutral[300], true: SemanticColors.primary }}
+        />
+      </View>
+
+      <View style={styles.weatherToggleRow}>
+        <View style={styles.weatherToggleText}>
+          <Text style={styles.statusLabel}>Weather animations</Text>
+          <Text style={styles.toggleHint}>Animate the background to match the current sky.</Text>
+        </View>
+        <Switch
+          accessibilityLabel="Weather animations"
+          value={animationsEnabled}
+          onValueChange={(v) => {
+            void setAnimationsEnabled(v);
+          }}
+          trackColor={{ false: Palette.neutral[300], true: SemanticColors.primary }}
+        />
+      </View>
+    </View>
   );
 }
 
@@ -432,6 +582,35 @@ const styles = StyleSheet.create({
   statusValue: {
     ...Typography.bodyBold,
     color: SemanticColors.textPrimary,
+  },
+  locationValue: {
+    flexShrink: 1,
+    textAlign: 'right',
+    marginLeft: Space.md,
+  },
+  clearLink: {
+    ...Typography.caption,
+    color: SemanticColors.error,
+    alignSelf: 'flex-start',
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: SemanticColors.border,
+    marginVertical: Space.xs,
+  },
+  weatherToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Space.md,
+  },
+  weatherToggleText: {
+    flex: 1,
+    gap: 2,
+  },
+  toggleHint: {
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
   },
   toastWrap: {
     position: 'absolute',

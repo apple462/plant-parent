@@ -36,7 +36,13 @@
           }
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Plant Parent uses your location to tailor watering suggestions to your local weather."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -46,7 +52,8 @@
       "router": {},
       "eas": {
         "projectId": "9c50b986-e0f2-48ec-bde9-19691ef02b3f"
-      }
+      },
+      "plantNetApiKey": "2b10sSRtVlaodZsKHIa3ZB53m"
     },
     "owner": "apple462"
   }

@@ -33,7 +33,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ConfirmationDialog, Toast } from '@/components/ui';
 import {
@@ -90,7 +90,7 @@ export default function SpeciesDetailScreen() {
   // Not-found case (Req 7.4 graceful handling): the species id did not resolve.
   if (!species) {
     return (
-      <JungleBackground>
+      <WeatherBackground>
         <View style={styles.flex}>
           <Stack.Screen options={{ headerShown: false }} />
           <ScreenHeader title="Species" onBack={() => router.back()} />
@@ -105,7 +105,7 @@ export default function SpeciesDetailScreen() {
             </View>
           </View>
         </View>
-      </JungleBackground>
+      </WeatherBackground>
     );
   }
 
@@ -151,7 +151,7 @@ export default function SpeciesDetailScreen() {
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <View style={styles.flex}>
     <Stack.Screen options={{ headerShown: false }} />
     <ScreenHeader onBack={() => router.back()} />
@@ -247,7 +247,7 @@ export default function SpeciesDetailScreen() {
       />
     </ScrollView>
     </View>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 

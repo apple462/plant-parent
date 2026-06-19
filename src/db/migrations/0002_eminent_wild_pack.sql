@@ -1,0 +1,1 @@
+ALTER TABLE `plants` ADD `environment` text DEFAULT 'outdoor' NOT NULL;

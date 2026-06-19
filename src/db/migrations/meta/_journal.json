@@ -15,6 +15,13 @@
       "when": 1781794367280,
       "tag": "0001_stormy_rattler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1781871923454,
+      "tag": "0002_eminent_wild_pack",
+      "breakpoints": true
     }
   ]
 }

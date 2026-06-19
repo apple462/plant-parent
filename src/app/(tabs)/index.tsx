@@ -42,9 +42,11 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { JungleBackground } from '@/components/JungleBackground';
 import { PlantCard } from '@/components/PlantCard';
 import { Button, LoadingSpinner } from '@/components/ui';
+import { WeatherAdvisoryBanner } from '@/components/weather/WeatherAdvisoryBanner';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
+import { WeeklyWateringForecast } from '@/components/weather/WeeklyWateringForecast';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import {
     BorderRadius,
@@ -61,6 +63,7 @@ import { useUserName } from '@/hooks/useUserName';
 import type { CareType } from '@/services/CareService';
 import type { Plant } from '@/services/PlantService';
 import { useCareStore } from '@/stores/careStore';
+import { useWeatherStore } from '@/stores/weatherStore';
 import { isDueToday as isDueTodayAt, isOverdue as isOverdueAt } from '@/utils/dateUtils';
 
 /** How long to wait for the plant data before showing the error/retry state. */
@@ -155,6 +158,30 @@ function deriveDueData(
   return { statusByPlant, dueTodayCount: dueTodayTasks.length, dueTodayTasks };
 }
 
+/**
+ * The most common watering interval across all schedules — a representative
+ * cadence for the weekly watering forecast. Returns `undefined` when there are
+ * no watering schedules (the forecast then shows weather only, no markers).
+ */
+function mostCommonWateringInterval(
+  rows: { type: string; intervalDays: number }[],
+): number | undefined {
+  const counts = new Map<number, number>();
+  for (const row of rows) {
+    if (row.type !== 'watering') continue;
+    counts.set(row.intervalDays, (counts.get(row.intervalDays) ?? 0) + 1);
+  }
+  let best: number | undefined;
+  let bestCount = 0;
+  for (const [interval, count] of counts) {
+    if (count > bestCount || (count === bestCount && (best === undefined || interval < best))) {
+      best = interval;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
 export default function VirtualJungleScreen() {
   const router = useRouter();
   const { plants, isLoading, error } = usePlants();
@@ -168,10 +195,23 @@ export default function VirtualJungleScreen() {
         id: care_schedules.id,
         plantId: care_schedules.plantId,
         type: care_schedules.type,
+        intervalDays: care_schedules.intervalDays,
         nextDueAt: care_schedules.nextDueAt,
       })
       .from(care_schedules),
   );
+
+  // A representative watering interval (the most common one across the
+  // Plant_Kingdom) drives the weekly watering forecast's drop markers. Falls
+  // back to undefined when no watering schedule exists (markers hidden).
+  const wateringInterval = useMemo(
+    () => mostCommonWateringInterval(schedulesQuery.data ?? []),
+    [schedulesQuery.data],
+  );
+
+  // Location label for the forecast header (read directly from the store).
+  const weatherLocationLabel = useWeatherStore((s) => s.location?.label);
+  const hasWeather = useWeatherStore((s) => s.weather != null);
 
   const { statusByPlant, dueTodayCount, dueTodayTasks } = useMemo(
     () => deriveDueData(schedulesQuery.data ?? []),
@@ -259,7 +299,7 @@ export default function VirtualJungleScreen() {
   // Error takes precedence over a still-pending load once the timeout fires.
   if (hasError) {
     return (
-      <JungleBackground>
+      <WeatherBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
           <View style={styles.centered}>
             <Icon name="alert" size={56} color={SemanticColors.error} />
@@ -270,39 +310,29 @@ export default function VirtualJungleScreen() {
             <Button label="Retry" onPress={handleRetry} style={styles.retryButton} />
           </View>
         </SafeAreaView>
-      </JungleBackground>
+      </WeatherBackground>
     );
   }
 
   if (isLoading) {
     return (
-      <JungleBackground>
+      <WeatherBackground>
         <SafeAreaView style={styles.container} edges={['top']}>
           <LoadingSpinner label="Loading your jungle…" />
         </SafeAreaView>
-      </JungleBackground>
+      </WeatherBackground>
     );
   }
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
       <SafeAreaView style={styles.container} edges={['top']}>
         {/*
-          Future-phase weather advisory banner (Req 12.1, 12.2, 12.3). The mount
-          is gated entirely behind FEATURE_FLAGS.WEATHER_SERVICE_ENABLED — when
-          false (MVP default) nothing weather-related renders. This is a NO-OP
-          stub; the actual weather-based watering advisories are implemented in a
-          later phase.
+          Weather advisory banner (Req 12.2, 12.3). Self-hides when there is no
+          weather or no advisory applies, so it is safe to mount unconditionally
+          behind the feature flag.
         */}
-        {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? (
-          <View
-            testID="weather-advisory-banner"
-            accessible
-            accessibilityLabel="Weather advisory"
-            style={styles.weatherBanner}>
-            <Text style={styles.weatherBannerText}>Weather advisory</Text>
-          </View>
-        ) : null}
+        {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? <WeatherAdvisoryBanner /> : null}
         <FlatList
           data={visiblePlants}
           keyExtractor={(plant) => plant.id}
@@ -319,6 +349,12 @@ export default function VirtualJungleScreen() {
                 userName={userName}
                 onAddPlant={handleAddPlant}
               />
+              {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED && hasWeather ? (
+                <WeeklyWateringForecast
+                  baseInterval={wateringInterval}
+                  locationLabel={weatherLocationLabel}
+                />
+              ) : null}
               {dueTodayTasks.length > 0 ? (
                 <TodayChecklist
                   tasks={dueTodayTasks}
@@ -357,7 +393,7 @@ export default function VirtualJungleScreen() {
           }}
         />
       </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 
@@ -706,17 +742,5 @@ const styles = StyleSheet.create({
   retryButton: {
     marginTop: Space.md,
     alignSelf: 'stretch',
-  },
-  weatherBanner: {
-    marginHorizontal: Space.sm,
-    marginTop: Space.sm,
-    padding: Space.md,
-    borderRadius: BorderRadius.md,
-    backgroundColor: SemanticColors.surface,
-    ...Elevation.sm,
-  },
-  weatherBannerText: {
-    ...Typography.bodyBold,
-    color: SemanticColors.primary,
   },
 });

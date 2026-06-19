@@ -33,7 +33,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Icon } from '@/components/Icon';
 import { JournalTimeline } from '@/components/JournalTimeline';
-import { JungleBackground } from '@/components/JungleBackground';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ConfirmationDialog, LoadingSpinner, TextArea } from '@/components/ui';
 import {
@@ -128,7 +128,7 @@ export default function GrowthJournalScreen() {
   const canCompare = entries.length >= 2;
 
   return (
-    <JungleBackground>
+    <WeatherBackground>
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScreenHeader
@@ -198,7 +198,7 @@ export default function GrowthJournalScreen() {
         onClose={handleCloseEntryModal}
       />
     </SafeAreaView>
-    </JungleBackground>
+    </WeatherBackground>
   );
 }
 
