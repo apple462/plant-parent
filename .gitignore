@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# EAS local credentials (contains sensitive cert info)
+credentials.json
