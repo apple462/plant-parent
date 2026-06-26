@@ -65,7 +65,6 @@ import {
 } from 'react-native';
 
 import { Icon, type IconName } from '@/components/Icon';
-import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import {
     Button,
@@ -75,6 +74,7 @@ import {
     LoadingSpinner,
     Toast,
 } from '@/components/ui';
+import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import {
     BorderRadius,
     Elevation,
@@ -823,10 +823,17 @@ export default function PlantProfileScreen() {
       {!editing ? (
         <View style={[styles.section, styles.ctaRow]}>
           <Button
-            label="Care Schedule"
+            label="Schedule"
             variant="secondary"
             icon="calendar"
             onPress={() => router.push(`/plants/${plant.id}/care`)}
+            style={styles.ctaButton}
+          />
+          <Button
+            label="History"
+            variant="secondary"
+            icon="history"
+            onPress={() => router.push(`/plants/${plant.id}/history`)}
             style={styles.ctaButton}
           />
           <Button

@@ -28,11 +28,29 @@ export interface PlantMatch {
   confidence: number;
 }
 
-/** Error surfaced for any identification failure (HTTP, timeout, zero matches). */
+/**
+ * Error surfaced for any identification failure (HTTP, timeout, zero matches).
+ *
+ * The user-facing `message` is intentionally uniform (Req 11.4), but the
+ * optional `status` (HTTP code, or one of the synthetic codes below) and
+ * `detail` (raw cause / response body) carry the *real* reason so it can be
+ * logged and inspected while debugging on-device. `detail` is never shown to
+ * the user.
+ */
 export class PlantIdentifierError extends Error {
-  constructor(message = 'Could not identify plant. Please enter the species manually.') {
+  /** HTTP status code, or a synthetic marker: 0 = network, 408 = timeout, 422 = no matches. */
+  readonly status?: number;
+  /** The underlying cause: response body, abort reason, or parse error. */
+  readonly detail?: string;
+
+  constructor(
+    message = 'Could not identify plant. Please enter the species manually.',
+    options?: { status?: number; detail?: string },
+  ) {
     super(message);
     this.name = 'PlantIdentifierError';
+    this.status = options?.status;
+    this.detail = options?.detail;
     Object.setPrototypeOf(this, PlantIdentifierError.prototype);
   }
 }
@@ -89,6 +107,16 @@ export function mapPlantNetResponse(raw: PlantNetResponse): PlantMatch[] {
   return matches;
 }
 
+/** True when an error is an AbortController timeout (DOMException 'AbortError'). */
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AbortError'
+  );
+}
+
 /**
  * Identify the plant in `imageUri` via PlantNet.
  *
@@ -101,14 +129,25 @@ export async function identifyPlant(imageUri: string): Promise<PlantMatch[]> {
   const timeout = setTimeout(() => controller.abort(), IDENTIFY_TIMEOUT_MS);
 
   try {
+    if (apiKey() === 'xxxx') {
+      // No key configured — fail fast with an actionable reason rather than a
+      // confusing PlantNet 401.
+      throw new PlantIdentifierError(undefined, {
+        status: 401,
+        detail: 'PlantNet API key is not configured (expo.extra.plantNetApiKey).',
+      });
+    }
+
     const form = new FormData();
+    // PlantNet pairs each `organs` value with the `images` value at the same
+    // index; the official examples append `organs` first, so mirror that order.
+    form.append('organs', 'auto');
     // React Native FormData accepts a `{ uri, name, type }` file descriptor.
     form.append('images', {
       uri: imageUri,
       name: 'plant.jpg',
       type: 'image/jpeg',
     } as unknown as Blob);
-    form.append('organs', 'auto');
 
     const url = `${PLANTNET_BASE_URL}?api-key=${encodeURIComponent(apiKey())}&lang=en&nb-results=${MAX_MATCHES}`;
     const response = await fetch(url, {
@@ -118,19 +157,43 @@ export async function identifyPlant(imageUri: string): Promise<PlantMatch[]> {
     });
 
     if (!response.ok) {
-      throw new PlantIdentifierError();
+      // Capture the body so the *real* cause (bad key → 401, rate limit → 429,
+      // "Species not found" → 404, malformed upload → 400) is visible in logs.
+      const body = await response.text().catch(() => '');
+      throw new PlantIdentifierError(undefined, {
+        status: response.status,
+        detail: body.slice(0, 500),
+      });
     }
 
     const raw = (await response.json()) as PlantNetResponse;
     const matches = mapPlantNetResponse(raw);
     if (matches.length === 0) {
-      throw new PlantIdentifierError();
+      throw new PlantIdentifierError(undefined, {
+        status: 422,
+        detail: 'PlantNet returned no usable species matches.',
+      });
     }
     return matches;
   } catch (error) {
-    if (error instanceof PlantIdentifierError) throw error;
-    // AbortError (timeout), network failure, JSON parse error → uniform message.
-    throw new PlantIdentifierError();
+    const identifierError =
+      error instanceof PlantIdentifierError
+        ? error
+        : isAbortError(error)
+          ? new PlantIdentifierError(undefined, {
+              status: 408,
+              detail: `Identification timed out after ${IDENTIFY_TIMEOUT_MS}ms.`,
+            })
+          : new PlantIdentifierError(undefined, {
+              status: 0,
+              detail: error instanceof Error ? error.message : String(error),
+            });
+    // Surface the underlying reason for debugging; the user still sees the
+    // uniform manual-fallback message (Req 11.4).
+    console.warn(
+      `PlantIdentifierService.identifyPlant failed (status ${identifierError.status ?? 'n/a'}): ${identifierError.detail ?? 'unknown'}`,
+    );
+    throw identifierError;
   } finally {
     clearTimeout(timeout);
   }

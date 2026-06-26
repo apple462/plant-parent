@@ -68,6 +68,45 @@ export function careMessageFor(type: CareType): string {
   return CARE_TYPE_MESSAGES[type];
 }
 
+/* -------------------------------------------------------------------------- */
+/* Notification actions (quick-actions on the reminder itself)                */
+/* -------------------------------------------------------------------------- */
+
+/** Category id that attaches the care action buttons to a reminder. */
+export const CARE_REMINDER_CATEGORY = 'care-reminder';
+/** Action id: mark the task done straight from the notification. */
+export const CARE_ACTION_DONE = 'CARE_MARK_DONE';
+/** Action id: snooze the reminder by a day. */
+export const CARE_ACTION_SNOOZE = 'CARE_SNOOZE';
+
+let categoriesRegistered = false;
+
+/**
+ * Register the care-reminder notification category and its action buttons
+ * ("Mark as done" / "Snooze 1 day"). Idempotent and best-effort — a failure
+ * (or a platform that ignores categories) never throws. Call once at startup.
+ */
+export async function registerCategories(): Promise<void> {
+  if (categoriesRegistered) return;
+  try {
+    await Notifications.setNotificationCategoryAsync(CARE_REMINDER_CATEGORY, [
+      {
+        identifier: CARE_ACTION_DONE,
+        buttonTitle: 'Mark as done',
+        options: { opensAppToForeground: true },
+      },
+      {
+        identifier: CARE_ACTION_SNOOZE,
+        buttonTitle: 'Snooze 1 day',
+        options: { opensAppToForeground: true },
+      },
+    ]);
+    categoriesRegistered = true;
+  } catch (error) {
+    console.warn('NotificationService.registerCategories failed', error);
+  }
+}
+
 /**
  * Interpret a permissions status as "granted". On iOS a provisional
  * authorization still allows (quiet) delivery, so it counts as granted.
@@ -96,6 +135,8 @@ function buildContent(
   return {
     title: plantDisplayName,
     body: careMessageFor(schedule.type),
+    // Attaches the "Mark as done" / "Snooze" action buttons (Req: quick-actions).
+    categoryIdentifier: CARE_REMINDER_CATEGORY,
     data: {
       scheduleId: schedule.id,
       plantId: schedule.plantId,
@@ -220,15 +261,40 @@ export async function rescheduleAfterCompletion(
 }
 
 /**
+ * Schedule a one-off "snooze" reminder `hours` from now for a care task,
+ * reusing the same content/category so its action buttons remain. Does NOT
+ * touch the schedule's `nextDueAt` — a snooze just nudges the user again later;
+ * it is not a completion. Returns the transient notification id.
+ */
+export async function snoozeReminder(
+  data: { scheduleId: string; plantId: string; type: CareType },
+  plantDisplayName: string,
+  hours = 24,
+): Promise<string> {
+  const when = new Date(Date.now() + hours * 60 * 60 * 1000);
+  return Notifications.scheduleNotificationAsync({
+    content: {
+      title: plantDisplayName || 'Plant care',
+      body: careMessageFor(data.type),
+      categoryIdentifier: CARE_REMINDER_CATEGORY,
+      data,
+    },
+    trigger: dateTrigger(when),
+  });
+}
+
+/**
  * NotificationService grouped export, matching the design's service interface.
  * Note the added `plantDisplayName` parameters: the notification copy requires
  * the plant's display name, which the `CareSchedule` type does not carry.
  */
 export const NotificationService = {
   requestPermissions,
+  registerCategories,
   scheduleReminder,
   cancelReminder,
   rescheduleAfterCompletion,
+  snoozeReminder,
 };
 
 export default NotificationService;

@@ -28,6 +28,7 @@ import {
     Redirect,
     Stack,
     ThemeProvider,
+    useRouter
 } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, useColorScheme, View } from 'react-native';
@@ -37,8 +38,10 @@ import { FEATURE_FLAGS } from '@/constants/featureFlags';
 import { ONBOARDING_COMPLETE, SESSION_ACTIVE } from '@/constants/storageKeys';
 import { useMigrationsHook } from '@/db';
 import { NotificationService } from '@/services/NotificationService';
+import { handleCareNotificationResponse } from '@/services/notificationActions';
 import { useUiStore } from '@/stores/uiStore';
 import { useWeatherStore } from '@/stores/weatherStore';
+import * as Notifications from 'expo-notifications';
 
 /** Resolution state for the first-launch onboarding gate. */
 type OnboardingGate = 'pending' | 'needs-onboarding' | 'complete';
@@ -55,6 +58,7 @@ type SessionGate = 'pending' | 'logged-out' | 'logged-in';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const theme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+  const router = useRouter();
 
   // Apply pending migrations on mount; gate the UI behind success (Req 9.1).
   const { success: migrationsSuccess, error: migrationsError } = useMigrationsHook();
@@ -77,6 +81,30 @@ export default function RootLayout() {
       // Intentionally ignored — permission state does not gate the app.
     });
   }, []);
+
+  // Notification quick-actions: register the care-reminder action category and
+  // handle taps / action buttons. A default tap deep-links to the plant's Care
+  // screen; "Mark as done" records the completion; "Snooze" re-nudges tomorrow.
+  // Also handles a cold start where the app was launched from a notification.
+  useEffect(() => {
+    void NotificationService.registerCategories();
+
+    const navigateToCare = (plantId: string) => router.push(`/plants/${plantId}/care`);
+
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      void handleCareNotificationResponse(response, navigateToCare);
+    });
+
+    Notifications.getLastNotificationResponseAsync()
+      .then((response) => {
+        if (response) void handleCareNotificationResponse(response, navigateToCare);
+      })
+      .catch(() => {
+        // Ignore — no pending launch notification.
+      });
+
+    return () => subscription.remove();
+  }, [router]);
 
   // Hydrate weather state on mount (Req 12). Fire-and-forget and fully
   // fail-soft inside the store — a missing location or failed fetch just leaves
@@ -178,6 +206,8 @@ export default function RootLayout() {
         <Stack.Screen name="onboarding" />
         <Stack.Screen name="plants" />
         <Stack.Screen name="login" />
+        <Stack.Screen name="backup" />
+        <Stack.Screen name="light-meter" />
       </Stack>
     </ThemeProvider>
   );

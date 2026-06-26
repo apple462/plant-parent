@@ -46,7 +46,6 @@ import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ConfirmationDialog, Input, Toast } from '@/components/ui';
 import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import { FEATURE_FLAGS } from '@/constants/featureFlags';
-import { useWeatherStore } from '@/stores/weatherStore';
 import {
     PREFERRED_REMINDER_HOUR,
     PREFERRED_REMINDER_MINUTE,
@@ -62,6 +61,7 @@ import {
     Typography
 } from '@/constants/theme';
 import { useUserName } from '@/hooks/useUserName';
+import { useWeatherStore } from '@/stores/weatherStore';
 
 /** App display name and version surfaced in the About card. */
 const APP_NAME = 'Plant Parent';
@@ -318,6 +318,32 @@ export default function SettingsScreen() {
         {FEATURE_FLAGS.WEATHER_SERVICE_ENABLED ? (
           <WeatherLocationCard onToast={setToast} />
         ) : null}
+
+        {/* Tools & data ------------------------------------------------ */}
+        <View style={styles.card}>
+          <View style={styles.sectionHeader}>
+            <Icon name="archive" size={20} color={SemanticColors.primary} />
+            <Text style={styles.sectionTitle}>Tools & data</Text>
+          </View>
+          <Text style={styles.sectionBody}>
+            Measure a spot&apos;s light to pick the right plant, and keep an on-device backup of
+            everything.
+          </Text>
+          <Button
+            label="Light meter"
+            variant="secondary"
+            icon="brightness"
+            onPress={() => router.push('/light-meter')}
+            style={styles.saveButton}
+          />
+          <Button
+            label="Backup & Restore"
+            variant="secondary"
+            icon="archive"
+            onPress={() => router.push('/backup')}
+            style={styles.saveButton}
+          />
+        </View>
 
         {/* About -------------------------------------------------------- */}
         <View style={styles.card}>

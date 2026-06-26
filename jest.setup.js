@@ -58,3 +58,43 @@ jest.mock('react-native-safe-area-context', () => {
     initialWindowMetrics: { insets: ZERO_INSETS, frame: ZERO_FRAME },
   };
 });
+
+// SmartAgenda pulls in react-native-reanimated layout animations (FadeInDown,
+// LinearTransition, …) whose worklets native part is unavailable under Jest.
+// On the home screen it's a presentational list, so render it as an inert stub
+// everywhere; tests that need agenda behaviour can override this mock.
+jest.mock('@/components/SmartAgenda', () => ({
+  __esModule: true,
+  SmartAgenda: () => null,
+  default: () => null,
+}));
+
+// expo-notifications has no JS fallback under Jest. The app's NotificationService
+// is the only module that uses it directly (and is mocked by service tests),
+// but the root layout now wires a notification-response listener, so provide a
+// global stub covering the surface the app touches. Tests with finer needs
+// (e.g. NotificationService.test) override this with their own jest.mock.
+jest.mock('expo-notifications', () => ({
+  __esModule: true,
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  getLastNotificationResponseAsync: jest.fn(async () => null),
+  setNotificationCategoryAsync: jest.fn(async () => {}),
+  scheduleNotificationAsync: jest.fn(async () => 'mock-notification-id'),
+  cancelScheduledNotificationAsync: jest.fn(async () => {}),
+  getPermissionsAsync: jest.fn(async () => ({
+    granted: true,
+    canAskAgain: true,
+    status: 'granted',
+    ios: { status: 2 },
+  })),
+  requestPermissionsAsync: jest.fn(async () => ({
+    granted: true,
+    canAskAgain: true,
+    status: 'granted',
+    ios: { status: 2 },
+  })),
+  setNotificationHandler: jest.fn(),
+  SchedulableTriggerInputTypes: { DATE: 'date' },
+  IosAuthorizationStatus: { NOT_DETERMINED: 0, DENIED: 1, AUTHORIZED: 2, PROVISIONAL: 3, EPHEMERAL: 4 },
+  PermissionStatus: { GRANTED: 'granted', DENIED: 'denied', UNDETERMINED: 'undetermined' },
+}));

@@ -22,6 +22,7 @@ export default function PlantDetailLayout() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="care" />
+      <Stack.Screen name="history" />
       <Stack.Screen name="symptom-checker" />
       <Stack.Screen name="journal/index" />
       <Stack.Screen name="journal/new" />

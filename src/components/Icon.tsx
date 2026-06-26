@@ -53,7 +53,15 @@ export type IconName =
   | 'check'
   | 'sun'
   | 'logout'
-  | 'pot';
+  | 'pot'
+  | 'fire'
+  | 'history'
+  | 'archive'
+  | 'restore'
+  | 'brightness'
+  | 'snooze'
+  | 'chart'
+  | 'home-thermometer';
 
 /**
  * Maps each semantic name to a concrete MaterialCommunityIcons glyph. Every
@@ -93,6 +101,14 @@ export const MAP: Record<IconName, keyof typeof MaterialCommunityIcons.glyphMap>
   sun: 'white-balance-sunny',
   logout: 'logout',
   pot: 'pot-outline',
+  fire: 'fire',
+  history: 'history',
+  archive: 'archive-outline',
+  restore: 'backup-restore',
+  brightness: 'brightness-6',
+  snooze: 'alarm-snooze',
+  chart: 'chart-line',
+  'home-thermometer': 'home-thermometer-outline',
 };
 
 export interface IconProps {

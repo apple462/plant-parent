@@ -68,6 +68,7 @@ jest.mock('expo-router', () => {
     DefaultTheme: minimalTheme,
     DarkTheme: { ...minimalTheme, dark: true },
     router: { replace: jest.fn(), push: jest.fn() },
+    useRouter: () => ({ replace: jest.fn(), push: jest.fn() }),
     useLocalSearchParams: jest.fn(() => ({}) as Record<string, unknown>),
   };
 });
@@ -96,7 +97,10 @@ jest.mock('@/db', () => ({
 // --- NotificationService mock (inert) --------------------------------------
 
 jest.mock('@/services/NotificationService', () => ({
-  NotificationService: { requestPermissions: jest.fn().mockResolvedValue('granted') },
+  NotificationService: {
+    requestPermissions: jest.fn().mockResolvedValue('granted'),
+    registerCategories: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // --- uiStore mock ----------------------------------------------------------

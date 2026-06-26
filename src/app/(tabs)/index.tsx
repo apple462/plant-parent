@@ -41,8 +41,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Icon, type IconName } from '@/components/Icon';
+import { Icon } from '@/components/Icon';
 import { PlantCard } from '@/components/PlantCard';
+import { SmartAgenda } from '@/components/SmartAgenda';
 import { Button, LoadingSpinner } from '@/components/ui';
 import { WeatherAdvisoryBanner } from '@/components/weather/WeatherAdvisoryBanner';
 import { WeatherBackground } from '@/components/weather/WeatherBackground';
@@ -64,6 +65,7 @@ import type { CareType } from '@/services/CareService';
 import type { Plant } from '@/services/PlantService';
 import { useCareStore } from '@/stores/careStore';
 import { useWeatherStore } from '@/stores/weatherStore';
+import { type AgendaSource } from '@/utils/agenda';
 import { isDueToday as isDueTodayAt, isOverdue as isOverdueAt } from '@/utils/dateUtils';
 
 /** How long to wait for the plant data before showing the error/retry state. */
@@ -85,27 +87,13 @@ const EMPTY_STATUS: PlantDueStatus = {
   isOverdue: false,
 };
 
-/** A single schedule due today, surfaced in the home-screen quick checklist. */
+/** A single schedule due today, used to count today's tasks for the header. */
 interface TodayTask {
   scheduleId: string;
   plantId: string;
   type: CareType;
   nextDueAt: Date;
 }
-
-/** Semantic icon per care type, for the quick-complete checklist rows. */
-const TYPE_ICON: Record<CareType, IconName> = {
-  watering: 'water',
-  fertilising: 'fertilise',
-  pruning: 'prune',
-};
-
-/** Human-readable label per care type. */
-const TYPE_LABEL: Record<CareType, string> = {
-  watering: 'Watering',
-  fertilising: 'Fertilising',
-  pruning: 'Pruning',
-};
 
 /**
  * Derive, from every care schedule, a per-plant soonest-due map, the global
@@ -196,9 +184,23 @@ export default function VirtualJungleScreen() {
         plantId: care_schedules.plantId,
         type: care_schedules.type,
         intervalDays: care_schedules.intervalDays,
+        reminderEnabled: care_schedules.reminderEnabled,
         nextDueAt: care_schedules.nextDueAt,
       })
       .from(care_schedules),
+  );
+
+  // Rows shaped for the SmartAgenda (overdue / due-today / upcoming with hints).
+  const agendaRows = useMemo<AgendaSource[]>(
+    () =>
+      (schedulesQuery.data ?? []).map((row) => ({
+        scheduleId: row.id,
+        plantId: row.plantId,
+        type: row.type as CareType,
+        nextDueAt: row.nextDueAt,
+        reminderEnabled: row.reminderEnabled === 1,
+      })),
+    [schedulesQuery.data],
   );
 
   // A representative watering interval (the most common one across the
@@ -213,7 +215,7 @@ export default function VirtualJungleScreen() {
   const weatherLocationLabel = useWeatherStore((s) => s.location?.label);
   const hasWeather = useWeatherStore((s) => s.weather != null);
 
-  const { statusByPlant, dueTodayCount, dueTodayTasks } = useMemo(
+  const { statusByPlant, dueTodayCount } = useMemo(
     () => deriveDueData(schedulesQuery.data ?? []),
     [schedulesQuery.data],
   );
@@ -355,14 +357,12 @@ export default function VirtualJungleScreen() {
                   locationLabel={weatherLocationLabel}
                 />
               ) : null}
-              {dueTodayTasks.length > 0 ? (
-                <TodayChecklist
-                  tasks={dueTodayTasks}
-                  plantNameById={plantNameById}
-                  completingId={completingId}
-                  onComplete={handleQuickComplete}
-                />
-              ) : null}
+              <SmartAgenda
+                rows={agendaRows}
+                plantNameById={plantNameById}
+                completingId={completingId}
+                onComplete={handleQuickComplete}
+              />
               {locations.length > 0 ? (
                 <LocationFilterRow
                   locations={locations}
@@ -448,55 +448,6 @@ function SummaryHeader({
           <Text style={styles.summaryBadgeText}>{dueLabel}</Text>
         </View>
       </View>
-    </View>
-  );
-}
-
-/**
- * Quick-complete checklist of every Care_Task due today, across all plants.
- * Lets the user mark a task done directly from the home screen instead of
- * navigating into the plant profile and then the Care screen.
- */
-function TodayChecklist({
-  tasks,
-  plantNameById,
-  completingId,
-  onComplete,
-}: {
-  tasks: TodayTask[];
-  plantNameById: Map<string, string>;
-  completingId: string | null;
-  onComplete: (scheduleId: string) => void;
-}) {
-  return (
-    <View style={styles.checklist}>
-      <Text style={styles.checklistTitle}>Today&apos;s tasks</Text>
-      {tasks.map((task) => {
-        const plantName = plantNameById.get(task.plantId) ?? 'Plant';
-        const isCompleting = completingId === task.scheduleId;
-        return (
-          <View key={task.scheduleId} style={[styles.checklistRow, Elevation.sm]}>
-            <View style={styles.checklistIconChip}>
-              <Icon name={TYPE_ICON[task.type]} size={18} color={SemanticColors.primary} />
-            </View>
-            <View style={styles.checklistTextGroup}>
-              <Text style={styles.checklistPlantName} numberOfLines={1}>
-                {plantName}
-              </Text>
-              <Text style={styles.checklistTaskLabel}>{TYPE_LABEL[task.type]}</Text>
-            </View>
-            <Button
-              label={isCompleting ? 'Saving…' : 'Mark done'}
-              variant="secondary"
-              loading={isCompleting}
-              disabled={completingId !== null}
-              onPress={() => onComplete(task.scheduleId)}
-              accessibilityLabel={`Mark ${TYPE_LABEL[task.type].toLowerCase()} done for ${plantName}`}
-              style={styles.checklistButton}
-            />
-          </View>
-        );
-      })}
     </View>
   );
 }

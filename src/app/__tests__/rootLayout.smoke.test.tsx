@@ -59,9 +59,13 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn().mockResolvedValue(undefined),
 }));
 
-// NotificationService.requestPermissions is fire-and-forget on mount.
+// NotificationService.requestPermissions is fire-and-forget on mount;
+// registerCategories sets up the quick-action category on mount too.
 jest.mock('@/services/NotificationService', () => ({
-  NotificationService: { requestPermissions: jest.fn().mockResolvedValue(true) },
+  NotificationService: {
+    requestPermissions: jest.fn().mockResolvedValue(true),
+    registerCategories: jest.fn().mockResolvedValue(undefined),
+  },
 }));
 
 // expo-router: stub the layout/navigation primitives used by both screens.

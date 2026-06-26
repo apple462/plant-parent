@@ -52,9 +52,9 @@ import {
     View,
 } from 'react-native';
 
+import { Icon } from '@/components/Icon';
 import { ScreenHeader } from '@/components/ScreenHeader';
 import { Button, ErrorBanner, Input } from '@/components/ui';
-import { Icon } from '@/components/Icon';
 import { WeatherBackground } from '@/components/weather/WeatherBackground';
 import {
     BorderRadius,
@@ -65,10 +65,11 @@ import {
     TabBarClearance,
     Typography,
 } from '@/constants/theme';
-import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
-import { useWeatherAdjustedCare } from '@/hooks/useWeatherAdjustedCare';
 import { db } from '@/db';
 import { plants } from '@/db/schema';
+import { useCareSchedule, type ScheduleWithStatus } from '@/hooks/useCareSchedule';
+import { useSeasonalCare } from '@/hooks/useSeasonalCare';
+import { useWeatherAdjustedCare } from '@/hooks/useWeatherAdjustedCare';
 import {
     DEFAULT_PREFERRED_HOUR,
     DEFAULT_PREFERRED_MINUTE,
@@ -80,6 +81,7 @@ import {
 import { NotificationService } from '@/services/NotificationService';
 import { useCareStore } from '@/stores/careStore';
 import { formatDDMMYYYY } from '@/utils/dateUtils';
+import { seasonLabel } from '@/utils/seasons';
 
 /** Display order and copy for the three care sections. */
 const CARE_SECTIONS: { type: CareType; title: string; defaultInterval: number }[] = [
@@ -158,6 +160,13 @@ export default function CareScreen() {
   // unchanged. We never auto-apply — the user taps "Apply" below (Req 12.4).
   const wateringSchedule = byType.watering?.schedule;
   const weatherAdjusted = useWeatherAdjustedCare(wateringSchedule?.intervalDays);
+
+  // Seasonal watering recommendation (local feature) — a coarse, always-offline
+  // heuristic from the calendar season + hemisphere. Works for indoor plants
+  // and when no weather is available; surfaced only when the live weather chip
+  // is not already driving the recommendation, to avoid two competing chips.
+  const seasonal = useSeasonalCare(wateringSchedule?.intervalDays);
+  const [applyingSeason, setApplyingSeason] = useState(false);
 
   // Weather only adjusts OUTDOOR plants — indoor plants are climate-controlled
   // (Req 12). Read this plant's environment reactively; default outdoor.
@@ -299,6 +308,23 @@ export default function CareScreen() {
     }
   }, [weatherAdjusted, wateringSchedule, saveSchedule, plantId]);
 
+  // Apply the season-adjusted watering interval (one-tap commit), reusing
+  // saveSchedule so the reminder + next-due date recompute like a manual edit.
+  const handleApplySeasonal = useCallback(async () => {
+    if (!seasonal || !wateringSchedule) return;
+    setApplyingSeason(true);
+    try {
+      await saveSchedule(plantId, 'watering', {
+        intervalDays: seasonal.adjustedInterval,
+        reminderEnabled: wateringSchedule.reminderEnabled,
+        preferredHour: wateringSchedule.preferredHour,
+        preferredMinute: wateringSchedule.preferredMinute,
+      });
+    } finally {
+      setApplyingSeason(false);
+    }
+  }, [seasonal, wateringSchedule, saveSchedule, plantId]);
+
   return (
     <WeatherBackground>
     <View style={styles.screen}>
@@ -412,6 +438,41 @@ export default function CareScreen() {
                   accessibilityLabel={`Apply weather-adjusted watering of every ${weatherAdjusted.adjustedInterval} days`}
                   style={styles.weatherChipButton}
                 />
+              </View>
+            ) : null}
+
+            {type === 'watering' && seasonal?.changed && !(isOutdoor && weatherAdjusted?.changed) ? (
+              <View style={styles.seasonChip}>
+                <Icon name="leaf" size={18} color={SemanticColors.primary} />
+                <View style={styles.weatherChipTextGroup}>
+                  <Text style={styles.weatherChipTitle}>
+                    {seasonLabel(seasonal.season)}: every {seasonal.adjustedInterval}{' '}
+                    {seasonal.adjustedInterval === 1 ? 'day' : 'days'}
+                  </Text>
+                  <Text style={styles.weatherChipBody}>{seasonal.profile.label}</Text>
+                </View>
+                <Button
+                  label="Apply"
+                  variant="secondary"
+                  loading={applyingSeason}
+                  disabled={applyingSeason || isLoading}
+                  onPress={() => {
+                    void handleApplySeasonal();
+                  }}
+                  accessibilityLabel={`Apply seasonal watering of every ${seasonal.adjustedInterval} days`}
+                  style={styles.weatherChipButton}
+                />
+              </View>
+            ) : null}
+
+            {type === 'fertilising' && seasonal && seasonal.profile.fertilising !== 'active' ? (
+              <View style={styles.seasonNote}>
+                <Icon name="leaf" size={16} color={SemanticColors.textSecondary} />
+                <Text style={styles.seasonNoteText}>
+                  {seasonal.profile.fertilising === 'suspend'
+                    ? `${seasonLabel(seasonal.season)} dormancy — most plants prefer a feeding pause until spring.`
+                    : `${seasonLabel(seasonal.season)} — ease off feeding as growth slows.`}
+                </Text>
               </View>
             ) : null}
 
@@ -556,5 +617,27 @@ const styles = StyleSheet.create({
     minHeight: 36,
     paddingHorizontal: Space.md,
     paddingVertical: Space.xs,
+  },
+  seasonChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.sm,
+    padding: Space.sm,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: SemanticColors.primaryMuted,
+  },
+  seasonNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Space.xs,
+    paddingHorizontal: Space.sm,
+    paddingVertical: Space.xs,
+    borderRadius: BorderRadius.md,
+    backgroundColor: SemanticColors.surfaceMuted,
+  },
+  seasonNoteText: {
+    flex: 1,
+    ...Typography.caption,
+    color: SemanticColors.textSecondary,
   },
 });

@@ -50,6 +50,14 @@
         {
           "locationWhenInUsePermission": "Plant Parent uses your location to tailor watering suggestions to your local weather."
         }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Plant Parent accesses your photos so you can set a cover photo and identify a plant from a picture.",
+          "cameraPermission": "Plant Parent uses the camera so you can photograph a plant to identify it or set its cover photo.",
+          "microphonePermission": false
+        }
       ]
     ],
     "experiments": {
