@@ -10,6 +10,7 @@
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.makingitlegendary.plantparent",
+
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -23,6 +24,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.makingitlegendary.plantparent",
+
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
